@@ -8,17 +8,17 @@ func EncodeToAlphabetByte(c rune) (byte, error) {
 	if c == ' ' {
 		return 0, nil
 	}
-	byte_k := c - 1071
-	if byte_k > 32 {
+	k_byte := c - 1071
+	if k_byte > 32 {
 		return 0, fmt.Errorf("character out of range ['а'-'я'] or ' ': %v", c)
 	}
-	if byte_k == 29 { // 'ь' if input is 'ъ'
+	if k_byte == 29 { // 'ь' if input is 'ъ'
 		return 27, nil
 	}
-	if byte_k > 29 {
-		return byte(byte_k) - 1, nil
+	if k_byte > 29 {
+		return byte(k_byte) - 1, nil
 	}
-	return byte(byte_k), nil
+	return byte(k_byte), nil
 }
 
 func DecodeAlphabetByte(c byte) (rune, error) {
@@ -50,9 +50,10 @@ func Shift(c byte, shift byte) (byte, error) {
 }
 
 func EncodeString(s string) ([]byte, error) {
-	enc_s := make([]byte, len(s))
-	for i, c := range s {
-		enc_c, err := EncodeToAlphabetByte(c)
+	s_rune := []rune(s)
+	enc_s := make([]byte, len(s_rune))
+	for i := 0; i < len(s_rune); i++ {
+		enc_c, err := EncodeToAlphabetByte(s_rune[i])
 		if err != nil {
 			return nil, err
 		}
@@ -61,9 +62,9 @@ func EncodeString(s string) ([]byte, error) {
 	return enc_s, nil
 }
 
-func DecodeString(s []byte) (string, error) {
-	dec_s := make([]rune, len(s))
-	for i, c := range s {
+func DecodeString(s_byte []byte) (string, error) {
+	dec_s := make([]rune, len(s_byte))
+	for i, c := range s_byte {
 		dec_c, err := DecodeAlphabetByte(c)
 		if err != nil {
 			return "", err
