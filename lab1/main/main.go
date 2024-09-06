@@ -6,10 +6,21 @@ import (
 )
 
 func main() {
-	for i := 'а'; i < 'а'+32; i++ {
-		a, _ := alph.GetCharacterValue(i)
-		fmt.Println(a)
+	s := "привет всем я крутой программист кстати но настраивать чтение из строки было впадлу"
+
+	shift := byte(5)
+	shiftback := byte(31 - shift)
+
+	s, err := alph.ShiftString(s, shift)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(s)
 	}
-	a, _ := alph.GetCharacterValue(' ')
-	println(a)
+	s, err = alph.ShiftString(s, shiftback)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(s)
+	}
 }
