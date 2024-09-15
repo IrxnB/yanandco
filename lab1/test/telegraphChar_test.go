@@ -1,14 +1,14 @@
 package test
 
 import (
-	telegraphchar "lab1/telegraphChar"
+	"lab1/crypto"
 	"strconv"
 	"testing"
 )
 
 func TestRuAlphabetEncoding(t *testing.T) {
 	for i := 'а'; i <= 'я'; i++ {
-		tc, err := telegraphchar.FromRune(i)
+		tc, err := crypto.NewTelegraphChar(i)
 
 		if err != nil {
 			t.Errorf("Конвертация буквы %v вызвала ошибку", string(i))
@@ -33,7 +33,7 @@ func TestRuAlphabetEncoding(t *testing.T) {
 }
 
 func TestSpaceEncoding(t *testing.T) {
-	tc, err := telegraphchar.FromRune(' ')
+	tc, err := crypto.NewTelegraphChar(' ')
 	if err != nil {
 		t.Errorf("Конвертация буквы %v вызвала ошибку", strconv.QuoteRune(' '))
 		t.Fail()
@@ -52,7 +52,7 @@ func TestSpaceEncoding(t *testing.T) {
 }
 
 func TestPlus(t *testing.T) {
-	TCa, _ := telegraphchar.FromRune('а')
+	TCa, _ := crypto.NewTelegraphChar('а')
 
 	TCb := TCa.Plus(TCa)
 
@@ -61,7 +61,7 @@ func TestPlus(t *testing.T) {
 		t.Fail()
 	}
 
-	TCt, _ := telegraphchar.FromRune('т')
+	TCt, _ := crypto.NewTelegraphChar('т')
 
 	TCe := TCt.Plus(TCt)
 

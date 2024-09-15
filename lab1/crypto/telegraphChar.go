@@ -1,6 +1,7 @@
-package telegraphchar
+package crypto
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -8,7 +9,7 @@ type TelegraphChar struct {
 	char byte
 }
 
-func FromRune(r rune) (*TelegraphChar, error) {
+func NewTelegraphChar(r rune) (*TelegraphChar, error) {
 	if r == ' ' {
 		return &TelegraphChar{0}, nil
 	}
@@ -43,4 +44,32 @@ func (tc *TelegraphChar) GetByte() byte {
 
 func (tc *TelegraphChar) Plus(another *TelegraphChar) *TelegraphChar {
 	return &TelegraphChar{(tc.char + another.char) % 32}
+}
+
+func (tc *TelegraphChar) Minus(another *TelegraphChar) *TelegraphChar {
+	return &TelegraphChar{(tc.char - another.char) % 32}
+}
+
+func EncodeString(str string) ([]*TelegraphChar, error) {
+	arr := make([]*TelegraphChar, 0, len(str))
+
+	for _, char := range str {
+		tc, err := NewTelegraphChar(char)
+		if err != nil {
+			return nil, err
+		}
+		arr = append(arr, tc)
+	}
+
+	return arr, nil
+}
+
+func DecodeToString(arr []*TelegraphChar) string {
+	var bytes bytes.Buffer
+
+	for _, tc := range arr {
+		bytes.WriteRune(tc.ToRune())
+	}
+
+	return bytes.String()
 }
