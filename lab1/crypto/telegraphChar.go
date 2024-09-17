@@ -51,7 +51,7 @@ func (tc *TelegraphChar) Minus(another *TelegraphChar) *TelegraphChar {
 }
 
 func EncodeString(str string) ([]*TelegraphChar, error) {
-	arr := make([]*TelegraphChar, 0, len(str))
+	arr := make([]*TelegraphChar, 0, len([]byte(str)))
 
 	for _, char := range str {
 		tc, err := NewTelegraphChar(char)
