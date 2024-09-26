@@ -47,7 +47,7 @@ func (tc *TelegraphChar) Plus(another *TelegraphChar) *TelegraphChar {
 }
 
 func (tc *TelegraphChar) Minus(another *TelegraphChar) *TelegraphChar {
-	return &TelegraphChar{(tc.char - another.char) % 32}
+	return &TelegraphChar{(tc.char - another.char + 32) % 32}
 }
 
 func EncodeString(str string) ([]*TelegraphChar, error) {
