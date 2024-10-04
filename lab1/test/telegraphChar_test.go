@@ -1,9 +1,9 @@
 package test
 
 import (
-	"lab1/crypto"
 	"strconv"
 	"testing"
+	"yanandco/lab1/crypto"
 )
 
 func TestRuAlphabetEncoding(t *testing.T) {

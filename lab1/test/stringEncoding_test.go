@@ -1,7 +1,7 @@
 package test
 
 import (
-	"lab1/crypto"
+	"yanandco/lab1/crypto"
 	"strconv"
 	"testing"
 )

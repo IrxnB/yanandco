@@ -1,8 +1,8 @@
 package test
 
 import (
-	"lab1/crypto"
 	"testing"
+	"yanandco/lab1/crypto"
 )
 
 func TestBlockEncryption(t *testing.T) {

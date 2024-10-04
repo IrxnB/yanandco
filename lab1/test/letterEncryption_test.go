@@ -2,9 +2,9 @@ package test
 
 import (
 	"bytes"
-	"lab1/crypto"
 	"strconv"
 	"testing"
+	"yanandco/lab1/crypto"
 )
 
 func TestSingleLetterEncryption(t *testing.T) {
