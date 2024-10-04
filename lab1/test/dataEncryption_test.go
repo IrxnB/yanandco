@@ -31,6 +31,7 @@ func TestEncodingMonoAlphabet(t *testing.T) {
 	t.Logf(
 		"\nИзначальная %v, ключ %v, закодированная %v, раскодированная %v",
 		strconv.Quote(testStr),
+		strconv.Quote(keyStr),
 		strconv.Quote(encoded),
 		strconv.Quote(decoded))
 }
