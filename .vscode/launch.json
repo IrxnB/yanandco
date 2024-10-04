@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/lab1/main/main.go",
+            "env": {
+                "GOPATH": "${workspaceFolder}"
+            },
+            "output": "console",
+            "args": [],
+            "showLog": true
+        }
+    ]
+}
