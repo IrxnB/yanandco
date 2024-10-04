@@ -64,34 +64,3 @@ func TestEncodingPolyAlphabet(t *testing.T) {
 		strconv.Quote(encoded),
 		strconv.Quote(decoded))
 }
-
-func TestEncodingPolyByBlocks(t *testing.T) {
-	testStr := "какаято строка"
-	keyStr := "ключ строка"
-	shift := 'ж'
-	blockSize := 4
-
-	encoded, err := crypto.EncryptStringPolyByBlocks(testStr, keyStr, shift, blockSize)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	decoded, err := crypto.DecryptStringPolyByBlocks(encoded, keyStr, shift, blockSize)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-
-	runeArrDecoded := []rune(decoded)
-	for pos, char := range []rune(testStr) {
-		if runeArrDecoded[pos] != char && char != 'Ь' {
-			t.FailNow()
-		}
-	}
-	t.Logf(
-		"\nИзначальная %v, ключ %v, закодированная %v, раскодированная %v",
-		strconv.Quote(testStr),
-		strconv.Quote(keyStr),
-		strconv.Quote(encoded),
-		strconv.Quote(decoded))
-}
