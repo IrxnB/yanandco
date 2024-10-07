@@ -4,6 +4,9 @@ import (
 	"yanandco/lab1/crypto"
 )
 
-func OneWayEcryption(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, iterations int) int {
-	return 1000
+type SBlock = crypto.SBlock
+type TelegraphChar = crypto.TelegraphChar
+
+func OneWayEcrypt(data *SBlock, key []*TelegraphChar, iterations int) (*SBlock, error) {
+	return nil, nil
 }
