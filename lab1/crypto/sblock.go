@@ -5,7 +5,7 @@ import (
 )
 
 type SBlock struct {
-	chars []*TelegraphChar
+	Chars []*TelegraphChar
 }
 
 func NewSBlockFromTC(chars []*TelegraphChar) (*SBlock, error) {
@@ -24,5 +24,5 @@ func NewSBlockFromString(data string) (*SBlock, error) {
 }
 
 func (block *SBlock) ToString() string {
-	return ToString(block.chars)
+	return ToString(block.Chars)
 }

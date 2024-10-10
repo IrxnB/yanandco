@@ -6,7 +6,7 @@ import (
 )
 
 type TelegraphChar struct {
-	char byte
+	Char byte
 }
 
 func NewTelegraphChar(r rune) (*TelegraphChar, error) {
@@ -27,27 +27,27 @@ func NewTelegraphChar(r rune) (*TelegraphChar, error) {
 }
 
 func (tc *TelegraphChar) ToRune() rune {
-	if tc.char == 0 {
+	if tc.Char == 0 {
 		return ' '
 	}
 
-	if tc.char >= 29 {
-		return rune(tc.char) + 1072
+	if tc.Char >= 29 {
+		return rune(tc.Char) + 1072
 	}
 
-	return rune(tc.char) + 1071
+	return rune(tc.Char) + 1071
 }
 
 func (tc *TelegraphChar) GetByte() byte {
-	return tc.char
+	return tc.Char
 }
 
 func (tc *TelegraphChar) Plus(another *TelegraphChar) *TelegraphChar {
-	return &TelegraphChar{(tc.char + another.char) % 32}
+	return &TelegraphChar{(tc.Char + another.Char) % 32}
 }
 
 func (tc *TelegraphChar) Minus(another *TelegraphChar) *TelegraphChar {
-	return &TelegraphChar{(tc.char - another.char + 32) % 32}
+	return &TelegraphChar{(tc.Char - another.Char + 32) % 32}
 }
 
 func EncodeString(str string) ([]*TelegraphChar, error) {

@@ -108,8 +108,8 @@ func (block *SBlock) Encrypt(key string, shift int) error {
 		return err
 	}
 
-	for pos, tc := range block.chars {
-		block.chars[pos] = tc.Encrypt(tcKey, pos+shift)
+	for pos, tc := range block.Chars {
+		block.Chars[pos] = tc.Encrypt(tcKey, pos+shift)
 	}
 
 	index := 0
@@ -118,12 +118,12 @@ func (block *SBlock) Encrypt(key string, shift int) error {
 		index += int(tcKey[i].GetByte())
 	}
 
-	index %= len(block.chars)
+	index %= len(block.Chars)
 
-	for i := 0; i < len(block.chars); i++ {
-		cur := (i + index) % len(block.chars)
-		next := (cur + 1) % len(block.chars)
-		block.chars[next] = block.chars[next].Plus(block.chars[cur])
+	for i := 0; i < len(block.Chars); i++ {
+		cur := (i + index) % len(block.Chars)
+		next := (cur + 1) % len(block.Chars)
+		block.Chars[next] = block.Chars[next].Plus(block.Chars[cur])
 	}
 
 	return nil
@@ -146,14 +146,14 @@ func (block *SBlock) Decrypt(key string, shift int) error {
 
 	index %= 4
 
-	for i := len(block.chars) - 1; i > 0; i-- {
-		cur := (i + index) % len(block.chars)
-		prev := (cur + 3) % len(block.chars)
-		block.chars[cur] = block.chars[cur].Minus(block.chars[prev])
+	for i := len(block.Chars) - 1; i > 0; i-- {
+		cur := (i + index) % len(block.Chars)
+		prev := (cur + 3) % len(block.Chars)
+		block.Chars[cur] = block.Chars[cur].Minus(block.Chars[prev])
 	}
 
-	for pos, tc := range block.chars {
-		block.chars[pos] = tc.Decrypt(tcKey, pos+shift)
+	for pos, tc := range block.Chars {
+		block.Chars[pos] = tc.Decrypt(tcKey, pos+shift)
 	}
 
 	return nil
