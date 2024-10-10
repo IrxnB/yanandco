@@ -1,7 +1,5 @@
 package crypto
 
-import "fmt"
-
 func EncryptStringMonoAlphabet(data string, key string) (string, error) {
 	tcData, err := EncodeString(data)
 
@@ -14,7 +12,7 @@ func EncryptStringMonoAlphabet(data string, key string) (string, error) {
 		return "", err
 	}
 
-	return DecodeToString(EncryptMono(tcData, tcKey)), nil
+	return ToString(EncryptMono(tcData, tcKey)), nil
 }
 
 func DecryptStringMonoAlphabet(data string, key string) (string, error) {
@@ -29,7 +27,7 @@ func DecryptStringMonoAlphabet(data string, key string) (string, error) {
 		return "", err
 	}
 
-	return DecodeToString(DecryptMono(tcData, tcKey)), nil
+	return ToString(DecryptMono(tcData, tcKey)), nil
 }
 func EncryptStringPolyAlphabet(data string, key string, shift int) (string, error) {
 	tcData, err := EncodeString(data)
@@ -43,7 +41,7 @@ func EncryptStringPolyAlphabet(data string, key string, shift int) (string, erro
 		return "", err
 	}
 
-	return DecodeToString(EncryptWord(tcData, tcKey, shift)), nil
+	return ToString(EncryptWord(tcData, tcKey, shift)), nil
 }
 
 func DecryptStringPolyAlphabet(data string, key string, shift int) (string, error) {
@@ -58,7 +56,7 @@ func DecryptStringPolyAlphabet(data string, key string, shift int) (string, erro
 		return "", err
 	}
 
-	return DecodeToString(DecryptWord(tcData, tcKey, shift)), nil
+	return ToString(DecryptWord(tcData, tcKey, shift)), nil
 }
 
 func EncryptWord(word []*TelegraphChar, key []*TelegraphChar, shift int) []*TelegraphChar {
@@ -101,26 +99,17 @@ func DecryptMono(data []*TelegraphChar, key []*TelegraphChar) []*TelegraphChar {
 	return tcResult
 }
 
-func EncryptBlock(data string, key string, shift int) (string, error) {
+func (block *SBlock) Encrypt(key string, shift int) error {
 
 	shift = shift % len(key)
 
-	tcData, err := EncodeString(data)
-	if err != nil {
-		return "", err
-	}
-
-	if len(tcData) != 4 {
-		return "", fmt.Errorf("размер блока не равен 4: %v", len(data))
-	}
-
 	tcKey, err := EncodeString(key)
 	if err != nil {
-		return "", err
+		return err
 	}
-	tcResult := make([]*TelegraphChar, 0, len(tcData))
-	for pos, tc := range tcData {
-		tcResult = append(tcResult, tc.Encrypt(tcKey, pos+shift))
+
+	for pos, tc := range block.chars {
+		block.chars[pos] = tc.Encrypt(tcKey, pos+shift)
 	}
 
 	index := 0
@@ -129,33 +118,24 @@ func EncryptBlock(data string, key string, shift int) (string, error) {
 		index += int(tcKey[i].GetByte())
 	}
 
-	index %= 4
+	index %= len(block.chars)
 
-	for i := 0; i < 3; i++ {
-		cur := (i + index) % 4
-		next := (cur + 1) % 4
-		tcResult[next] = tcResult[next].Plus(tcResult[cur])
+	for i := 0; i < len(block.chars); i++ {
+		cur := (i + index) % len(block.chars)
+		next := (cur + 1) % len(block.chars)
+		block.chars[next] = block.chars[next].Plus(block.chars[cur])
 	}
 
-	return DecodeToString(tcResult), nil
+	return nil
 }
 
-func DecryptBlock(data string, key string, shift int) (string, error) {
+func (block *SBlock) Decrypt(key string, shift int) error {
 
 	shift = shift % len(key)
 
-	tcData, err := EncodeString(data)
-	if err != nil {
-		return "", err
-	}
-
-	if len(tcData) != 4 {
-		return "", fmt.Errorf("размер блока не равен 4: %v", len(data))
-	}
-
 	tcKey, err := EncodeString(key)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	index := 0
@@ -166,16 +146,15 @@ func DecryptBlock(data string, key string, shift int) (string, error) {
 
 	index %= 4
 
-	for i := 3; i > 0; i-- {
-		cur := (i + index) % 4
-		prev := (cur + 3) % 4
-		tcData[cur] = tcData[cur].Minus(tcData[prev])
+	for i := len(block.chars) - 1; i > 0; i-- {
+		cur := (i + index) % len(block.chars)
+		prev := (cur + 3) % len(block.chars)
+		block.chars[cur] = block.chars[cur].Minus(block.chars[prev])
 	}
 
-	tcResult := make([]*TelegraphChar, 0, len(tcData))
-	for pos, tc := range tcData {
-		tcResult = append(tcResult, tc.Decrypt(tcKey, pos+shift))
+	for pos, tc := range block.chars {
+		block.chars[pos] = tc.Decrypt(tcKey, pos+shift)
 	}
 
-	return DecodeToString(tcResult), nil
+	return nil
 }

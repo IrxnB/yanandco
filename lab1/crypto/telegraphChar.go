@@ -64,7 +64,7 @@ func EncodeString(str string) ([]*TelegraphChar, error) {
 	return arr, nil
 }
 
-func DecodeToString(arr []*TelegraphChar) string {
+func ToString(arr []*TelegraphChar) string {
 	var bytes bytes.Buffer
 
 	for _, tc := range arr {
