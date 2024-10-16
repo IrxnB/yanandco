@@ -9,7 +9,7 @@ type SBlockInt struct {
 	n int
 }
 
-// ? should replace this function to sblock.go file as
+// ? should move this function to sblock.go file as
 // ? func (data *SBlock) ToSBlockInt() (*SBlockInt, error)
 func NewSBlockIntFromSBlock(data *SBlock) (*SBlockInt, error) {
 	n := int(0)
@@ -22,6 +22,7 @@ func NewSBlockIntFromSBlock(data *SBlock) (*SBlockInt, error) {
 
 func (data *SBlockInt) ToSBlock() (*SBlock, error) {
 	//? How do I put declared sblock length instead of 4 in the loop?
+	data = &SBlockInt{n: data.n}
 	var chars = make([]*crypto.TelegraphChar, 4)
 	for i := 3; i >= 0; i-- {
 		chars[i] = &crypto.TelegraphChar{Char: byte(data.n & 0x1f)}

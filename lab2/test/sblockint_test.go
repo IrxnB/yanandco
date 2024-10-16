@@ -7,7 +7,7 @@ import (
 	"yanandco/lab2/sblockint"
 )
 
-func TestSBlockIntFromSBlockA(t *testing.T) {
+func TestSBlockIntFromSBlock(t *testing.T) {
 	s_start, err := crypto.NewSBlockFromString("вуду")
 	if err != nil {
 		t.Error(err)
@@ -26,9 +26,9 @@ func TestSBlockIntFromSBlockA(t *testing.T) {
 		t.FailNow()
 	}
 
-	if !reflect.DeepEqual(s_end, s_start) {
+	if !reflect.DeepEqual(s_end.Chars, s_start.Chars) {
 		t.Error("Conversion failed")
 		t.FailNow()
 	}
-	t.Logf("Converted: %v, Start: %v, End: %v", sint, s_start, s_end)
+	t.Logf("Converted: %v, Start: %v, End: %v", sint, s_start.ToString(), s_end.ToString())
 }
