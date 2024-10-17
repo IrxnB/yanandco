@@ -1,12 +1,24 @@
 package sblockint
 
 import (
+	"fmt"
 	"yanandco/lab1/crypto"
 )
 
 type SBlock = crypto.SBlock
 type SBlockInt struct {
 	n int
+}
+
+func (b *SBlockInt) GetValue() int {
+	return b.n
+}
+
+func NewSBlockIntFromInt(n int) (*SBlockInt, error) {
+	if n >= 1<<20 {
+		return nil, fmt.Errorf("больше 20 бит")
+	}
+	return &SBlockInt{n}, nil
 }
 
 // ? should move this function to sblock.go file as
