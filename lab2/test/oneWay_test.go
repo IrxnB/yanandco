@@ -14,7 +14,7 @@ func TestOneWayEncrypt(t *testing.T) {
 		t.FailNow()
 	}
 
-	s_end, err := oneway.OneWayEncrypt(s_start, "", 4)
+	s_end, err := oneway.OneWayEncryptSBlock(s_start, "", 4)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
