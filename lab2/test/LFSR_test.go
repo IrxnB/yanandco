@@ -3,9 +3,7 @@ package test
 import (
 	"sync"
 	"testing"
-	"time"
 	"yanandco/lab2/generators"
-	"yanandco/lab2/oneway"
 	"yanandco/lab2/sblockint"
 )
 
@@ -52,10 +50,8 @@ func TestManyAlteratingLFSR(t *testing.T) {
 	for i := 1000; i < 1100; i++ {
 		wg.Add(1)
 
-		time.Sleep(time.Millisecond * 500)
 		go func(val int) {
 			seed, _ := sblockint.NewSBlockIntFromInt(val)
-			seed, _ = oneway.OneWayEncryptSBlockInt(seed, time.Now().String(), 10)
 			gen := *generators.AlternatingLSFR(seed)
 			first := gen().GetValue()
 			count := 0

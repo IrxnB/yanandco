@@ -13,31 +13,20 @@ func OneWayEncryptSBlock(data *SBlock, key string, iterations int) (*SBlock, err
 	if key == "" {
 		key = "amazing_key"
 	}
-
-	res := *data
-	res.Chars = make([]*TelegraphChar, len(data.Chars))
-	for i := range data.Chars {
-		res.Chars[i] = &TelegraphChar{Char: data.Chars[i].Char}
-	}
-
+	var result SBlock
 	for i := 0; i < iterations; i++ {
-
-		buf := res
-		buf.Chars = make([]*TelegraphChar, len(res.Chars))
-		for i := range res.Chars {
-			buf.Chars[i] = &TelegraphChar{Char: res.Chars[i].Char}
+		iterationResult := SBlock{Chars: make([]*TelegraphChar, len(data.Chars))}
+		for i := range data.Chars {
+			iterationResult.Chars[i] = &TelegraphChar{Char: data.Chars[i].Char}
 		}
-
-		if err := res.Encrypt(key, i); err != nil {
-			return nil, err
+		iterationResult.Encrypt(key, i)
+		for i := range iterationResult.Chars {
+			iterationResult.Chars[i] = iterationResult.Chars[i].Plus(data.Chars[i])
 		}
-
-		for j := 0; j < len(res.Chars); j++ {
-			buf.Chars[j] = res.Chars[j].Plus(buf.Chars[j])
-		}
-		key = res.ToString()
+		result = iterationResult
+		key = iterationResult.ToString()
 	}
-	return &res, nil
+	return &result, nil
 }
 
 func OneWayEncryptSBlockInt(data *SBlockInt, key string, iterations int) (*SBlockInt, error) {
