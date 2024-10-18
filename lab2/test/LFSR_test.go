@@ -97,3 +97,36 @@ func TestLinearComposition(t *testing.T) {
 	}
 	t.Logf("первое %v итераций %v", first, count)
 }
+
+func TestDispersionEquality(t *testing.T) {
+	columnFactor := (1<<20-1)/10 + 1
+	for seed_value := 1; seed_value < 5; seed_value++ {
+		columns := make([]int, 10)
+		seeds := make([]*generators.SBlockInt, 0, 4)
+
+		seed1, _ := sblockint.NewSBlockIntFromInt(1 * seed_value)
+		seed2, _ := sblockint.NewSBlockIntFromInt(2 * seed_value)
+		seed3, _ := sblockint.NewSBlockIntFromInt(3 * seed_value)
+		seed4, _ := sblockint.NewSBlockIntFromInt(4 * seed_value)
+
+		seeds = append(seeds, seed1)
+		seeds = append(seeds, seed2)
+		seeds = append(seeds, seed3)
+		seeds = append(seeds, seed4)
+		genRef, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
+		gen := *genRef
+
+		for i := 0; i < 1_000; i++ {
+			repetition := gen()
+			colNumber := repetition.GetValue() / columnFactor
+			if colNumber >= 10 {
+				t.Logf("")
+			}
+			columns[colNumber] += 1
+		}
+		for i, v := range columns {
+			t.Logf("%v: %v", i*columnFactor, v)
+		}
+		t.Logf("---------------------------------------------------")
+	}
+}
