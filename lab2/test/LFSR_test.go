@@ -125,7 +125,7 @@ func TestDispersionEquality(t *testing.T) {
 			columns[colNumber] += 1
 		}
 		for i, v := range columns {
-			t.Logf("%v: %v", i*columnFactor, v)
+			t.Logf("До %v: %v", i*columnFactor, v)
 		}
 		t.Logf("---------------------------------------------------")
 	}
