@@ -1,8 +1,10 @@
-package block
+package blockencryption
 
 import (
 	"fmt"
 	"yanandco/lab1/crypto"
+	"yanandco/lab2/generators"
+	"yanandco/lab2/sblockint"
 )
 
 type Block struct {
@@ -32,18 +34,67 @@ func (block *Block) ToString() string {
 	return crypto.ToString(block.data)
 }
 
-func NewBlock(seed string) *Block {
+func NewBlock(seed *sblockint.SBlockInt) *Block {
+	generator := *generators.AlternatingLSFR(seed)
+	data := make([]*crypto.TelegraphChar, 16)
+	for i := 0; i < 4; i++ {
+		sblock, _ := generator().ToSBlock()
+		for j := 0; j < 4; j++ {
+			data[i*4+j] = sblock.Chars[j]
+		}
+	}
+	return &Block{data: data}
+}
+
+// Это и есть P-блок по факту
+func Skitala(data []*crypto.TelegraphChar) []*crypto.TelegraphChar {
+	if len(data) < 4 {
+		panic(fmt.Errorf("Количество символов должно быть не менее 4"))
+	}
+	result := make([]*crypto.TelegraphChar, len(data))
+
+	right := data[:len(data)/2]
+	left := data[len(data)/2:]
+
+	for i := 0; i < len(data); i++ {
+		if (i+1)%4 < 2 {
+			result[i] = &crypto.TelegraphChar{Char: left[i/2].GetByte()}
+		} else {
+			result[i] = &crypto.TelegraphChar{Char: right[i/2].GetByte()}
+		}
+	}
+
+	return result
+}
+
+// Обратный P-блок
+func Antiskitala(data []*crypto.TelegraphChar) []*crypto.TelegraphChar {
+	if len(data) < 4 {
+		panic(fmt.Errorf("Количество символов должно быть не менее 4"))
+	}
+	result := make([]*crypto.TelegraphChar, len(data))
+
+	right := data[:len(data)/2]
+	left := data[len(data)/2:]
+
+	for i := 0; i < len(data); i++ {
+		if (i+1)%4 < 2 {
+			result[i] = &crypto.TelegraphChar{Char: left[i/2].GetByte()}
+		} else {
+			result[i] = &crypto.TelegraphChar{Char: right[i/2].GetByte()}
+		}
+	}
+
+	return result
+}
+
+func round([]*crypto.TelegraphChar) []*crypto.TelegraphChar {
 	return nil
 }
 
-func skitala() []*crypto.TelegraphChar {
-	return nil
-}
+// func (b *Block) encrypt(key *Block, iterations int) error {
 
-func round() []*crypto.TelegraphChar {
-	return nil, nil
-}
-
-func (b *Block) encrypt(key *Block, iterations int) error {
-	return nil
-}
+// 	for i := 0; i < iterations; i++ {
+// 		round
+// }
+// }

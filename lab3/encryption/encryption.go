@@ -1,11 +1,11 @@
 package encryption
 
 import (
-	"lab3/block"
 	"yanandco/lab1/crypto"
+	"yanandco/lab3/blockencryption"
 )
 
-type Block = block.Block
+type Block = blockencryption.Block
 
 func pBlock() []*crypto.TelegraphChar {
 	return nil

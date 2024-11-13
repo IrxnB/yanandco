@@ -13,7 +13,7 @@ type Generator = func() *SBlockInt
 
 type GeneratorFactory = func(seed *sblockint.SBlockInt) *Generator
 
-func LSFR(seed *sblockint.SBlockInt) *Generator {
+func LSFR(seed *SBlockInt) *Generator {
 	state := seed.GetValue()
 
 	lsfr := func() *sblockint.SBlockInt {
