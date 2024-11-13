@@ -92,7 +92,7 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*
 	l0 := data[0:4]
 	r0 := data[4:8]
 
-	var r1 []*crypto.TelegraphChar
+	r1 := make([]*crypto.TelegraphChar, 0, 4)
 	copy(r1, l0)
 
 	l1sblock, _ := crypto.NewSBlockFromTC(l0)
@@ -112,9 +112,10 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*
 	return Skitala(res)
 }
 
-// func (b *Block) encrypt(key *Block, iterations int) error {
+func (b *Block) encrypt(key *Block, iterations int) error {
 
-// 	for i := 0; i < iterations; i++ {
-// 		round
-// }
-// }
+	for i := 0; i < iterations; i++ {
+		b.data = round(b.data, key.data, i*4)
+	}
+	return nil
+}
