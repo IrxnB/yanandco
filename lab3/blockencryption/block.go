@@ -88,8 +88,28 @@ func Antiskitala(data []*crypto.TelegraphChar) []*crypto.TelegraphChar {
 	return result
 }
 
-func round([]*crypto.TelegraphChar) []*crypto.TelegraphChar {
-	return nil
+func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*crypto.TelegraphChar {
+	l0 := data[0:4]
+	r0 := data[4:8]
+
+	var r1 []*crypto.TelegraphChar
+	copy(r1, l0)
+
+	l1sblock, _ := crypto.NewSBlockFromTC(l0)
+	keyStr := crypto.ToString(key)
+	_ = l1sblock.Encrypt(keyStr, i)
+	l1 := l1sblock.Chars
+	for i, v := range r0 {
+		l1[i].Plus(v)
+	}
+	res := make([]*crypto.TelegraphChar, 0, 4)
+
+	for i := 0; i < 4; i++ {
+		res[i] = l1[i]
+		res[i+4] = r1[i]
+	}
+
+	return Skitala(res)
 }
 
 // func (b *Block) encrypt(key *Block, iterations int) error {
