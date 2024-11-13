@@ -48,8 +48,8 @@ func NewBlock(seed *sblockint.SBlockInt) *Block {
 
 // Это и есть P-блок по факту
 func Skitala(data []*crypto.TelegraphChar) []*crypto.TelegraphChar {
-	if len(data) < 4 {
-		panic(fmt.Errorf("Количество символов должно быть не менее 4"))
+	if len(data) < 4 || len(data)%2 != 0 {
+		panic(fmt.Errorf("количество символов должно быть четным и не менее 4"))
 	}
 	result := make([]*crypto.TelegraphChar, len(data))
 
@@ -58,9 +58,9 @@ func Skitala(data []*crypto.TelegraphChar) []*crypto.TelegraphChar {
 
 	for i := 0; i < len(data); i++ {
 		if (i+1)%4 < 2 {
-			result[i] = &crypto.TelegraphChar{Char: left[i/2].GetByte()}
-		} else {
 			result[i] = &crypto.TelegraphChar{Char: right[i/2].GetByte()}
+		} else {
+			result[i] = &crypto.TelegraphChar{Char: left[i/2].GetByte()}
 		}
 	}
 
@@ -69,22 +69,22 @@ func Skitala(data []*crypto.TelegraphChar) []*crypto.TelegraphChar {
 
 // Обратный P-блок
 func Antiskitala(data []*crypto.TelegraphChar) []*crypto.TelegraphChar {
-	if len(data) < 4 {
-		panic(fmt.Errorf("Количество символов должно быть не менее 4"))
+	if len(data) < 4 || len(data)%2 != 0 {
+		panic(fmt.Errorf("количество символов должно быть четным и не менее 4"))
 	}
-	result := make([]*crypto.TelegraphChar, len(data))
 
-	right := data[:len(data)/2]
-	left := data[len(data)/2:]
+	right := make([]*crypto.TelegraphChar, len(data)/2)
+	left := make([]*crypto.TelegraphChar, len(data)/2)
 
 	for i := 0; i < len(data); i++ {
 		if (i+1)%4 < 2 {
-			result[i] = &crypto.TelegraphChar{Char: left[i/2].GetByte()}
+			right[i/2] = &crypto.TelegraphChar{Char: data[i].GetByte()}
 		} else {
-			result[i] = &crypto.TelegraphChar{Char: right[i/2].GetByte()}
+			left[i/2] = &crypto.TelegraphChar{Char: data[i].GetByte()}
 		}
 	}
 
+	result := append(right, left...)
 	return result
 }
 

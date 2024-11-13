@@ -22,3 +22,20 @@ func TestSkitala(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestAntiskitala(t *testing.T) {
+	data := "адебвжзг"
+	encoded, err := crypto.EncodeString(data)
+	if err != nil {
+		t.Fatalf("encode failed: %v", err)
+		t.FailNow()
+	}
+	antiskitaled := blockencryption.Antiskitala(encoded)
+
+	antiskitaled_string := crypto.ToString(antiskitaled)
+
+	t.Logf("Start: %v, Encoded: %v", data, antiskitaled_string)
+	if antiskitaled_string != "абвгдежз" {
+		t.Fail()
+	}
+}
