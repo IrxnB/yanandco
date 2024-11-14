@@ -92,7 +92,7 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*
 	l0 := data[0:4]
 	r0 := data[4:8]
 
-	r1 := make([]*crypto.TelegraphChar, 0, 4)
+	r1 := make([]*crypto.TelegraphChar, 4)
 	copy(r1, l0)
 
 	l1sblock, _ := crypto.NewSBlockFromTC(l0)
@@ -102,7 +102,7 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*
 	for i, v := range r0 {
 		l1[i].Plus(v)
 	}
-	res := make([]*crypto.TelegraphChar, 0, 4)
+	res := make([]*crypto.TelegraphChar, 8)
 
 	for i := 0; i < 4; i++ {
 		res[i] = l1[i]
@@ -116,7 +116,7 @@ func antiround(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int)
 	return nil
 }
 
-func (b *Block) encrypt(key *Block, iterations int) error {
+func (b *Block) Encrypt(key *Block, iterations int) error {
 	if iterations > 8 {
 		return fmt.Errorf("функция не поддерживает более 8 итераций")
 	}

@@ -39,3 +39,27 @@ func TestAntiskitala(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestEncrypt(t *testing.T) {
+	block_data := "абвгдежзийклмноп"
+	key_data := "йцукенгшзхъфывау"
+
+	block, err := blockencryption.NewBlockFromString(block_data)
+	if err != nil {
+		t.Fatalf("block creation failed: %v", err)
+		t.FailNow()
+	}
+	block_key, err := blockencryption.NewBlockFromString(key_data)
+	if err != nil {
+		t.Fatalf("key creation failed: %v", err)
+		t.FailNow()
+	}
+	err = block.Encrypt(block_key, 2)
+	if err != nil {
+		t.Fatalf("encryption failed: %v", err)
+		t.FailNow()
+	}
+
+	encrypted_string := block.ToString()
+	t.Logf("Start: %v, Encrypted: %v", block_data, encrypted_string)
+}
