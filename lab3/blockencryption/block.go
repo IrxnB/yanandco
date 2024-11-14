@@ -112,33 +112,79 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*
 	return Skitala(res)
 }
 
-func antiround(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*crypto.TelegraphChar {
-	return nil
-}
-
 func (b *Block) Encrypt(key *Block, iterations int) error {
-	if iterations > 8 {
-		return fmt.Errorf("функция не поддерживает более 8 итераций")
+	seeds := make([]*sblockint.SBlockInt, 4)
+	for i := 0; i < 4; i++ {
+		seeds[i], _ = sblockint.NewSBlockIntFromSBlock(&crypto.SBlock{Chars: key.data[i*4 : i*4+4]})
 	}
 
-	for i, v := range b.data {
-		b.data[i].Char = v.GetByte() ^ key.data[i].GetByte()
+	generator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
+	for i := 0; i < 4; i++ {
+		_, _ = (*generator)().ToSBlock()
+		for j := 0; j < 4; j++ {
+			// b.data[i*4+j].Xor(cur_key.Chars[j])
+		}
 	}
 
 	for i := 0; i < iterations; i++ {
+		curKey := make([]*crypto.TelegraphChar, 16)
+		for i := 0; i < 4; i++ {
+			cur_key, _ := (*generator)().ToSBlock()
+			for j := 0; j < 4; j++ {
+				curKey[i*4+j] = cur_key.Chars[j]
+			}
+		}
+		fmt.Println(crypto.ToString(curKey))
+
 		left := b.data[:8]
 		right := b.data[8:]
-		keyLeft := key.data[i : i+8]
 
-		nextleft := round(left, keyLeft, 0)
+		nextleft := round(left, curKey, i*4)
 		for i, v := range nextleft {
-			nextleft[i].Char = v.GetByte() ^ right[i].GetByte()
+			v.Xor(right[i])
 		}
 
 		nextright := left
 
 		b.data = append(nextleft, nextright...)
 	}
+	fmt.Println("-------------")
 
+	return nil
+}
+
+func (b *Block) Decrypt(key *Block, iterations int) error {
+	seeds := make([]*sblockint.SBlockInt, 4)
+	for i := 0; i < 4; i++ {
+		seeds[i], _ = sblockint.NewSBlockIntFromSBlock(&crypto.SBlock{Chars: key.data[i*4 : i*4+4]})
+	}
+	generator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
+	keys := make([]*Block, iterations+1)
+	for i := 0; i < iterations+1; i++ {
+		keys[i] = &Block{data: make([]*crypto.TelegraphChar, 16)}
+		for j := 0; j < 4; j++ {
+			sblock, _ := (*generator)().ToSBlock()
+			for z := 0; z < 4; z++ {
+				keys[i].data[j*4+z] = sblock.Chars[z]
+			}
+		}
+	}
+
+	for i := iterations - 1; i >= 0; i-- {
+		left := b.data[:8]
+		right := b.data[8:]
+		fmt.Println(crypto.ToString(keys[i+1].data))
+
+		prevright := round(left, keys[i+1].data, (i+1)*4)
+		for i, v := range prevright {
+			v.Xor(left[i])
+		}
+
+		b.data = append(right, prevright...)
+	}
+
+	// for i, v := range b.data {
+	// 	v.Xor(keys[0].data[i])
+	// }
 	return nil
 }

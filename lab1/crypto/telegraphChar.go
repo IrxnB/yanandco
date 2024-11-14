@@ -46,6 +46,10 @@ func (tc *TelegraphChar) Plus(another *TelegraphChar) *TelegraphChar {
 	return &TelegraphChar{(tc.Char + another.Char) % 32}
 }
 
+func (tc *TelegraphChar) Xor(another *TelegraphChar) *TelegraphChar {
+	return &TelegraphChar{(tc.Char ^ another.Char) % 32}
+}
+
 func (tc *TelegraphChar) Minus(another *TelegraphChar) *TelegraphChar {
 	return &TelegraphChar{(tc.Char - another.Char + 32) % 32}
 }
