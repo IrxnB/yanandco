@@ -112,10 +112,33 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*
 	return Skitala(res)
 }
 
+func antiround(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*crypto.TelegraphChar {
+	return nil
+}
+
 func (b *Block) encrypt(key *Block, iterations int) error {
+	if iterations > 8 {
+		return fmt.Errorf("функция не поддерживает более 8 итераций")
+	}
+
+	for i, v := range b.data {
+		b.data[i].Char = v.GetByte() ^ key.data[i].GetByte()
+	}
 
 	for i := 0; i < iterations; i++ {
-		b.data = round(b.data, key.data, i*4)
+		left := b.data[:8]
+		right := b.data[8:]
+		keyLeft := key.data[i : i+8]
+
+		nextleft := round(left, keyLeft, 0)
+		for i, v := range nextleft {
+			nextleft[i].Char = v.GetByte() ^ right[i].GetByte()
+		}
+
+		nextright := left
+
+		b.data = append(nextleft, nextright...)
 	}
+
 	return nil
 }
