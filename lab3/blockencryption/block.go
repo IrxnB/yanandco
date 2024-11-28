@@ -93,7 +93,10 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*
 	r0 := data[4:8]
 
 	r1 := make([]*crypto.TelegraphChar, 4)
-	copy(r1, l0)
+
+	for pos, val := range l0 {
+		r1[pos], _ = crypto.NewTelegraphChar(val.ToRune())
+	}
 
 	l1sblock, _ := crypto.NewSBlockFromTC(l0)
 	keyStr := crypto.ToString(key)
@@ -105,8 +108,8 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*
 	res := make([]*crypto.TelegraphChar, 8)
 
 	for i := 0; i < 4; i++ {
-		res[i] = l1[i]
-		res[i+4] = r1[i]
+		res[i], _ = crypto.NewTelegraphChar(l1[i].ToRune())
+		res[i+4], _ = crypto.NewTelegraphChar(r1[i].ToRune())
 	}
 
 	return Skitala(res)

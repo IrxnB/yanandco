@@ -12,6 +12,10 @@ func NewSBlockFromTC(chars []*TelegraphChar) (*SBlock, error) {
 	if len(chars) != 4 {
 		return nil, fmt.Errorf("wrong number of chars")
 	}
+	data := make([]*TelegraphChar, 4)
+	for pos, val := range chars {
+		data[pos], _ = NewTelegraphChar(val.ToRune())
+	}
 	return &SBlock{chars}, nil
 }
 
