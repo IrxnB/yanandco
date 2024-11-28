@@ -84,11 +84,20 @@ func Antiskitala(data []*crypto.TelegraphChar) []*crypto.TelegraphChar {
 		}
 	}
 
-	result := append(right, left...)
+	result := make([]*crypto.TelegraphChar, len(data))
+
+	for pos, val := range right {
+		result[pos], _ = crypto.NewTelegraphChar(val.ToRune())
+	}
+
+	for pos, val := range left {
+		result[pos+len(right)], _ = crypto.NewTelegraphChar(val.ToRune())
+	}
+
 	return result
 }
 
-func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*crypto.TelegraphChar {
+func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, shift int) []*crypto.TelegraphChar {
 	l0 := data[0:4]
 	r0 := data[4:8]
 
@@ -100,10 +109,10 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, i int) []*
 
 	l1sblock, _ := crypto.NewSBlockFromTC(l0)
 	keyStr := crypto.ToString(key)
-	_ = l1sblock.Encrypt(keyStr, i)
+	l1sblock.Encrypt(keyStr, shift)
 	l1 := l1sblock.Chars
 	for i, v := range r0 {
-		l1[i].Plus(v)
+		l1[i] = l1[i].Plus(v)
 	}
 	res := make([]*crypto.TelegraphChar, 8)
 
@@ -125,7 +134,7 @@ func (b *Block) Encrypt(key *Block, iterations int) error {
 	for i := 0; i < 4; i++ {
 		_, _ = (*generator)().ToSBlock()
 		for j := 0; j < 4; j++ {
-			// b.data[i*4+j].Xor(cur_key.Chars[j])
+			//b.data[i*4+j] = b.data[i*4+j].Xor(cur_key.Chars[j])
 		}
 	}
 
@@ -144,7 +153,7 @@ func (b *Block) Encrypt(key *Block, iterations int) error {
 
 		nextleft := round(left, curKey, i*4)
 		for i, v := range nextleft {
-			v.Xor(right[i])
+			nextleft[i] = v.Xor(right[i])
 		}
 
 		nextright := left
@@ -178,16 +187,16 @@ func (b *Block) Decrypt(key *Block, iterations int) error {
 		right := b.data[8:]
 		fmt.Println(crypto.ToString(keys[i+1].data))
 
-		prevright := round(left, keys[i+1].data, (i+1)*4)
+		prevright := round(right, keys[i+1].data, i*4)
 		for i, v := range prevright {
-			v.Xor(left[i])
+			prevright[i] = v.Xor(left[i])
 		}
 
 		b.data = append(right, prevright...)
 	}
 
 	// for i, v := range b.data {
-	// 	v.Xor(keys[0].data[i])
+	// b.data[i] = v.Xor(keys[0].data[i])
 	// }
 	return nil
 }

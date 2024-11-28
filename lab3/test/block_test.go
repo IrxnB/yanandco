@@ -54,14 +54,14 @@ func TestEncrypt(t *testing.T) {
 		t.Fatalf("key creation failed: %v", err)
 		t.FailNow()
 	}
-	err = block.Encrypt(block_key, 1)
+	err = block.Encrypt(block_key, 20)
 	if err != nil {
 		t.Fatalf("encryption failed: %v", err)
 		t.FailNow()
 	}
 	encrypted_string := block.ToString()
 
-	err = block.Decrypt(block_key, 1)
+	err = block.Decrypt(block_key, 20)
 	if err != nil {
 		t.Fatalf("dencryption failed: %v", err)
 		t.FailNow()

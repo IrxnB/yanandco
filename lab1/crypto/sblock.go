@@ -16,7 +16,7 @@ func NewSBlockFromTC(chars []*TelegraphChar) (*SBlock, error) {
 	for pos, val := range chars {
 		data[pos], _ = NewTelegraphChar(val.ToRune())
 	}
-	return &SBlock{chars}, nil
+	return &SBlock{data}, nil
 }
 
 func NewSBlockFromString(data string) (*SBlock, error) {
