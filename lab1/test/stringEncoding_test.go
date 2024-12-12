@@ -1,9 +1,9 @@
 package test
 
 import (
-	"lab1/crypto"
 	"strconv"
 	"testing"
+	"yanandco/lab1/crypto"
 )
 
 func TestEncoding(t *testing.T) {
@@ -15,7 +15,7 @@ func TestEncoding(t *testing.T) {
 		return
 	}
 
-	decoded := crypto.DecodeToString(encoded)
+	decoded := crypto.ToString(encoded)
 
 	decodedRuneArr := []rune(decoded)
 	t.Logf("Изначальная строка: %v,\n после раскодирования %v", strconv.Quote(str), strconv.Quote(decoded))

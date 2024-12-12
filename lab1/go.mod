@@ -1,3 +1,3 @@
-module lab1
+module yanandco/lab1
 
 go 1.21.5

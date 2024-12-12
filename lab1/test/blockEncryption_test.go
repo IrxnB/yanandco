@@ -1,22 +1,33 @@
 package test
 
 import (
-	"lab1/crypto"
 	"testing"
+	"yanandco/lab1/crypto"
 )
 
 func TestBlockEncryption(t *testing.T) {
 	data := "блоа"
 	key := "вдйсржхзцпчубъеякгтмшэлноф"
 	shift := 2
-	encrypted, err := crypto.EncryptBlock(data, key, shift)
+
+	block, err := crypto.NewSBlockFromString(data)
 	if err != nil {
 		t.FailNow()
 	}
-	decrypted, err := crypto.DecryptBlock(encrypted, key, shift)
+
+	err = block.Encrypt(key, shift)
 	if err != nil {
 		t.FailNow()
 	}
+
+	encrypted := block.ToString()
+
+	err = block.Decrypt(key, shift)
+	if err != nil {
+		t.FailNow()
+	}
+
+	decrypted := block.ToString()
 
 	t.Logf("%v, %v, %v", data, encrypted, decrypted)
 }
