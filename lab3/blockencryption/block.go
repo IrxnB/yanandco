@@ -8,14 +8,14 @@ import (
 )
 
 type Block struct {
-	data []*crypto.TelegraphChar
+	Data []*crypto.TelegraphChar
 }
 
 func NewBlockFromTelegraphChars(data []*crypto.TelegraphChar) (*Block, error) {
 	if len(data) != 16 {
 		return nil, fmt.Errorf("wrong number of chars")
 	}
-	return &Block{data: data}, nil
+	return &Block{Data: data}, nil
 }
 
 func NewBlockFromString(data string) (*Block, error) {
@@ -31,7 +31,7 @@ func NewBlockFromString(data string) (*Block, error) {
 }
 
 func (block *Block) ToString() string {
-	return crypto.ToString(block.data)
+	return crypto.ToString(block.Data)
 }
 
 func NewBlock(seed *sblockint.SBlockInt) *Block {
@@ -43,7 +43,7 @@ func NewBlock(seed *sblockint.SBlockInt) *Block {
 			data[i*4+j] = sblock.Chars[j]
 		}
 	}
-	return &Block{data: data}
+	return &Block{Data: data}
 }
 
 // Это и есть P-блок по факту
@@ -127,14 +127,14 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, shift int)
 func (b *Block) Encrypt(key *Block, iterations int) error {
 	seeds := make([]*sblockint.SBlockInt, 4)
 	for i := 0; i < 4; i++ {
-		seeds[i], _ = sblockint.NewSBlockIntFromSBlock(&crypto.SBlock{Chars: key.data[i*4 : i*4+4]})
+		seeds[i], _ = sblockint.NewSBlockIntFromSBlock(&crypto.SBlock{Chars: key.Data[i*4 : i*4+4]})
 	}
 
 	generator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
 	for i := 0; i < 4; i++ {
-		_, _ = (*generator)().ToSBlock()
+		cur_key, _ := (*generator)().ToSBlock()
 		for j := 0; j < 4; j++ {
-			//b.data[i*4+j] = b.data[i*4+j].Xor(cur_key.Chars[j])
+			b.Data[i*4+j] = b.Data[i*4+j].Xor(cur_key.Chars[j])
 		}
 	}
 
@@ -146,10 +146,9 @@ func (b *Block) Encrypt(key *Block, iterations int) error {
 				curKey[i*4+j] = cur_key.Chars[j]
 			}
 		}
-		fmt.Println(crypto.ToString(curKey))
 
-		left := b.data[:8]
-		right := b.data[8:]
+		left := b.Data[:8]
+		right := b.Data[8:]
 
 		nextleft := round(left, curKey, i*4)
 		for i, v := range nextleft {
@@ -158,9 +157,8 @@ func (b *Block) Encrypt(key *Block, iterations int) error {
 
 		nextright := left
 
-		b.data = append(nextleft, nextright...)
+		b.Data = append(nextleft, nextright...)
 	}
-	fmt.Println("-------------")
 
 	return nil
 }
@@ -168,35 +166,34 @@ func (b *Block) Encrypt(key *Block, iterations int) error {
 func (b *Block) Decrypt(key *Block, iterations int) error {
 	seeds := make([]*sblockint.SBlockInt, 4)
 	for i := 0; i < 4; i++ {
-		seeds[i], _ = sblockint.NewSBlockIntFromSBlock(&crypto.SBlock{Chars: key.data[i*4 : i*4+4]})
+		seeds[i], _ = sblockint.NewSBlockIntFromSBlock(&crypto.SBlock{Chars: key.Data[i*4 : i*4+4]})
 	}
 	generator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
 	keys := make([]*Block, iterations+1)
 	for i := 0; i < iterations+1; i++ {
-		keys[i] = &Block{data: make([]*crypto.TelegraphChar, 16)}
+		keys[i] = &Block{Data: make([]*crypto.TelegraphChar, 16)}
 		for j := 0; j < 4; j++ {
 			sblock, _ := (*generator)().ToSBlock()
 			for z := 0; z < 4; z++ {
-				keys[i].data[j*4+z] = sblock.Chars[z]
+				keys[i].Data[j*4+z] = sblock.Chars[z]
 			}
 		}
 	}
 
 	for i := iterations - 1; i >= 0; i-- {
-		left := b.data[:8]
-		right := b.data[8:]
-		fmt.Println(crypto.ToString(keys[i+1].data))
+		left := b.Data[:8]
+		right := b.Data[8:]
 
-		prevright := round(right, keys[i+1].data, i*4)
+		prevright := round(right, keys[i+1].Data, i*4)
 		for i, v := range prevright {
 			prevright[i] = v.Xor(left[i])
 		}
 
-		b.data = append(right, prevright...)
+		b.Data = append(right, prevright...)
 	}
 
-	// for i, v := range b.data {
-	// b.data[i] = v.Xor(keys[0].data[i])
-	// }
+	for i, v := range b.Data {
+		b.Data[i] = v.Xor(keys[0].Data[i])
+	}
 	return nil
 }
