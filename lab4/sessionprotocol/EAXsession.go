@@ -13,6 +13,8 @@ type Session struct {
 	receiverMac TelegraphChar
 	sec         string
 	iv          TelegraphChar
+	mac         Block
+	key         Block
 }
 
 func (Session) SendMessage(message string) {
