@@ -1,4 +1,4 @@
-package bitstring
+package bitstream
 
 import (
 	"yanandco/lab1/crypto"

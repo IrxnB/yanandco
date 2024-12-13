@@ -2,11 +2,11 @@ package test
 
 import (
 	"testing"
-	"yanandco/lab4/bitstring"
+	"yanandco/lab4/bitstream"
 )
 
 func TestAddBits(t *testing.T) {
-	bs := bitstring.NewBitStream()
+	bs := bitstream.NewBitStream()
 	bs.WriteBits(0b100111, 6)
 	first := bs.ReadBits(2)
 	t.Log(first)
