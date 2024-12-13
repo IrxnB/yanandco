@@ -1,7 +1,9 @@
 package sessionprotocol
 
 import (
+	"yanandco/lab1/crypto"
 	"yanandco/lab3/blockencryption"
+	"yanandco/lab4/bitstream"
 )
 
 type Block = blockencryption.Block
@@ -11,122 +13,96 @@ type Package struct {
 	senderMac   [8]TelegraphChar
 	recieverMac [8]TelegraphChar
 	sessionId   [9]TelegraphChar
-	length      [5]TelegraphChar
+	length      [5]TelegraphChar //можно в int переделать
 	iv          *Block
-	data        *[]TelegraphChar //так как блоки могут быть нецелыми. Можно еще со string попробовать
+	data        *[]TelegraphChar
 	mac         *Block
 }
 
-// func (p Package) toBin() big.Int {
-// 	// Использую bigint как битовую строку
-// 	binPackage := make([]byte, p.packageLength())
-// 	binPackage[0] = p.packageType[0].GetByte()
-// 	binPackage[1] = p.packageType[1].GetByte()
-// 	offset := 2
-// 	for i := 0; i < len(p.senderMac); i++ {
-// 		binPackage[i+offset] = p.senderMac[i].GetByte()
-// 	}
-// 	offset += len(p.senderMac)
+func (p Package) toBin() bitstream.BitStream {
+	bs := bitstream.NewBitStream()
 
-// 	for i := 0; i < len(p.recieverMac); i++ {
-// 		binPackage[i+offset] = p.senderMac[i].GetByte()
-// 	}
-// 	offset += len(p.recieverMac)
+	for _, tc := range p.packageType {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.senderMac {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.recieverMac {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.sessionId {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.length {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.iv.Data {
+		bs.WriteTelegraphChar(*tc)
+	}
+	for _, tc := range *p.data {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.mac.Data {
+		bs.WriteTelegraphChar(*tc)
+	}
 
-// 	for i := 0; i < len(p.sessionId); i++ {
-// 		binPackage[i+offset] = p.sessionId[i].GetByte()
-// 	}
-// 	offset += len(p.sessionId)
+	return *bs
+}
 
-// 	for i := 0; i < len(p.length); i++ {
-// 		binPackage[i+offset] = p.length[i].GetByte()
-// 	}
-// 	offset += len(p.length)
-
-// 	for i := 0; i < len(p.iv.Data); i++ {
-// 		binPackage[i+offset] = p.iv.Data[i].GetByte()
-// 	}
-// 	offset += len(p.iv.Data)
-
-// 	for i := 0; i < len(*p.data); i++ {
-// 		binPackage[i+offset] = (*p.data)[i].GetByte()
-// 	}
-// 	offset += len(*p.data)
-
-// 	for i := 0; i < len(p.mac.Data); i++ {
-// 		binPackage[i+offset] = p.mac.Data[i].GetByte()
-// 	}
-// 	return new(big.Int).Set(0)
-// }
-
-func FromBin(binPackage []byte) *Package {
-	// TODO handle padding
+func FromBin(bs bitstream.BitStream) *Package {
 	p := &Package{}
-	packageType := [2]TelegraphChar{}
-	packageType[0] = TelegraphChar{Char: binPackage[0]}
-	packageType[1] = TelegraphChar{Char: binPackage[1]}
-	p.packageType = packageType
-	offset := 2
 
-	senderMac := [8]TelegraphChar{}
-	for i := 0; i < len(senderMac); i++ {
-		senderMac[i] = TelegraphChar{Char: binPackage[i+offset]}
+	for i := 0; i < 2; i++ {
+		p.packageType[i].Char = byte(bs.ReadBits(5))
 	}
-	p.senderMac = senderMac
-	offset += len(senderMac)
 
-	recieverMac := [8]TelegraphChar{}
-	for i := 0; i < len(recieverMac); i++ {
-		recieverMac[i] = TelegraphChar{Char: binPackage[i+offset]}
+	for i := 0; i < 8; i++ {
+		p.senderMac[i].Char = byte(bs.ReadBits(5))
 	}
-	p.recieverMac = recieverMac
-	offset += len(recieverMac)
 
-	sessionId := [9]TelegraphChar{}
-	for i := 0; i < len(sessionId); i++ {
-		sessionId[i] = TelegraphChar{Char: binPackage[i+offset]}
+	for i := 0; i < 8; i++ {
+		p.recieverMac[i].Char = byte(bs.ReadBits(5))
 	}
-	p.sessionId = sessionId
-	offset += len(sessionId)
 
-	lengthData := [5]TelegraphChar{}
-	for i := 0; i < len(lengthData); i++ {
-		lengthData[i] = TelegraphChar{Char: binPackage[i+offset]}
+	for i := 0; i < 9; i++ {
+		p.sessionId[i].Char = byte(bs.ReadBits(5))
 	}
-	p.length = lengthData
-	offset += len(lengthData)
 
-	ivData := make([]*TelegraphChar, 16)
-	for i := 0; i < len(ivData); i++ {
-		ivData[i] = &TelegraphChar{Char: binPackage[i+offset]}
+	for i := 0; i < 5; i++ {
+		p.length[i].Char = byte(bs.ReadBits(5))
 	}
-	iv, _ := blockencryption.NewBlockFromTelegraphChars(ivData)
-	p.iv = iv
-	offset += len(ivData)
 
-	data := make([]TelegraphChar, 0)
-	dataLen := 0
-	for i := 0; i < len(p.length); i++ {
-		dataLen += int(p.length[i].GetByte())
+	ivData := make([]*crypto.TelegraphChar, 16)
+	for i := 0; i < 16; i++ {
+		ivData[i] = &crypto.TelegraphChar{Char: byte(bs.ReadBits(5))}
 	}
+	p.iv, _ = blockencryption.NewBlockFromTelegraphChars(ivData)
+
+	dataLen := p.dataLength()
+
+	data := make([]crypto.TelegraphChar, dataLen)
 	for i := 0; i < dataLen; i++ {
-		data = append(data, TelegraphChar{Char: binPackage[i+offset]})
+		data[i].Char = byte(bs.ReadBits(5))
 	}
 	p.data = &data
-	offset += dataLen
 
-	macData := make([]*TelegraphChar, 16)
-	for i := 0; i < len(macData); i++ {
-		macData[i] = &TelegraphChar{Char: binPackage[i+offset]}
+	macData := make([]*crypto.TelegraphChar, 16)
+	for i := 0; i < 16; i++ {
+		macData[i] = &crypto.TelegraphChar{Char: byte(bs.ReadBits(5))}
 	}
-	mac, _ := blockencryption.NewBlockFromTelegraphChars(macData)
-	p.mac = mac
+
+	p.mac, _ = blockencryption.NewBlockFromTelegraphChars(macData)
 
 	return p
 }
 
-func (p Package) packageLength() int {
-	return len(p.packageType) + len(p.senderMac) + len(p.recieverMac) + len(*p.data) + len(p.iv.Data) + len(p.mac.Data)*5
+func (p Package) dataLength() int {
+	dataLen := 0
+	for _, char := range p.length {
+		dataLen += int(char.Char)
+	}
+	return dataLen
 }
 
 // func (p Package) padMessage() []byte {
