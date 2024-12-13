@@ -18,6 +18,9 @@ type Session struct {
 }
 
 func (Session) SendMessage(message string) {
+	// create package
+	// encode
+
 	return
 }
 

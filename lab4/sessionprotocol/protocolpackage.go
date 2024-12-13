@@ -97,34 +97,50 @@ func FromBin(bs bitstream.BitStream) *Package {
 	return p
 }
 
+// bit length of data
 func (p Package) dataLength() int {
 	dataLen := 0
 	for _, char := range p.length {
 		dataLen += int(char.Char)
 	}
+	dataLen *= 5
 	return dataLen
 }
 
-// func (p Package) padMessage() []byte {
-// 	l := p.packageLength()
-// 	blocks := l / 80
-// 	remainder := l % 80
-// 	binPackage := p.toBin()
+// bit length of package
+func (p Package) packageLength() int {
+	total := 0
+	total += len(p.packageType) * 5
+	total += len(p.senderMac) * 5
+	total += len(p.recieverMac) * 5
+	total += len(p.sessionId) * 5
+	total += len(p.length) * 5
+	total += len(p.iv.Data) * 5
+	total += p.dataLength()
+	total += len(p.mac.Data) * 5
+	return total
+}
 
-// 	padSize := 0
-// 	if remainder == 0 {
-// 		blocks += 1
-// 		emptSize = 80
-// 	} else if remainder <= 57 {
-// 		block += 1
-// 		padSize = 80 - remainder
-// 	} else {
-// 		blocks += 2
-// 		padSize = 160 - remainder
-// 	}
+func (p Package) padMessage() bitstream.BitStream {
+	l := p.packageLength()
+	blocks := l / 80
+	remainder := l % 80
+	binPackage := p.toBin()
 
-// 	return
-// }
+	padSize := 0
+	if remainder == 0 {
+		blocks += 1
+		emptSize = 80
+	} else if remainder <= 57 {
+		block += 1
+		padSize = 80 - remainder
+	} else {
+		blocks += 2
+		padSize = 160 - remainder
+	}
+
+	return
+}
 
 func (Package) checkPadding() bool {
 	return false
