@@ -17,48 +17,47 @@ type Package struct {
 	mac         *Block
 }
 
-func (p Package) toBin() []byte {
-	// Форма не бинарная, просто унифицируем все данные под byte. 3 бита каждого байта не используются
-	// C таким же успехом (и по-моему логичнее) можно было хранить массив TelegraphChar
-	binPackage := make([]byte, p.packageLength())
-	binPackage[0] = p.packageType[0].GetByte()
-	binPackage[1] = p.packageType[1].GetByte()
-	offset := 2
-	for i := 0; i < len(p.senderMac); i++ {
-		binPackage[i+offset] = p.senderMac[i].GetByte()
-	}
-	offset += len(p.senderMac)
+// func (p Package) toBin() big.Int {
+// 	// Использую bigint как битовую строку
+// 	binPackage := make([]byte, p.packageLength())
+// 	binPackage[0] = p.packageType[0].GetByte()
+// 	binPackage[1] = p.packageType[1].GetByte()
+// 	offset := 2
+// 	for i := 0; i < len(p.senderMac); i++ {
+// 		binPackage[i+offset] = p.senderMac[i].GetByte()
+// 	}
+// 	offset += len(p.senderMac)
 
-	for i := 0; i < len(p.recieverMac); i++ {
-		binPackage[i+offset] = p.senderMac[i].GetByte()
-	}
-	offset += len(p.recieverMac)
+// 	for i := 0; i < len(p.recieverMac); i++ {
+// 		binPackage[i+offset] = p.senderMac[i].GetByte()
+// 	}
+// 	offset += len(p.recieverMac)
 
-	for i := 0; i < len(p.sessionId); i++ {
-		binPackage[i+offset] = p.sessionId[i].GetByte()
-	}
-	offset += len(p.sessionId)
+// 	for i := 0; i < len(p.sessionId); i++ {
+// 		binPackage[i+offset] = p.sessionId[i].GetByte()
+// 	}
+// 	offset += len(p.sessionId)
 
-	for i := 0; i < len(p.length); i++ {
-		binPackage[i+offset] = p.length[i].GetByte()
-	}
-	offset += len(p.length)
+// 	for i := 0; i < len(p.length); i++ {
+// 		binPackage[i+offset] = p.length[i].GetByte()
+// 	}
+// 	offset += len(p.length)
 
-	for i := 0; i < len(p.iv.Data); i++ {
-		binPackage[i+offset] = p.iv.Data[i].GetByte()
-	}
-	offset += len(p.iv.Data)
+// 	for i := 0; i < len(p.iv.Data); i++ {
+// 		binPackage[i+offset] = p.iv.Data[i].GetByte()
+// 	}
+// 	offset += len(p.iv.Data)
 
-	for i := 0; i < len(*p.data); i++ {
-		binPackage[i+offset] = (*p.data)[i].GetByte()
-	}
-	offset += len(*p.data)
+// 	for i := 0; i < len(*p.data); i++ {
+// 		binPackage[i+offset] = (*p.data)[i].GetByte()
+// 	}
+// 	offset += len(*p.data)
 
-	for i := 0; i < len(p.mac.Data); i++ {
-		binPackage[i+offset] = p.mac.Data[i].GetByte()
-	}
-	return make([]byte, 0)
-}
+// 	for i := 0; i < len(p.mac.Data); i++ {
+// 		binPackage[i+offset] = p.mac.Data[i].GetByte()
+// 	}
+// 	return new(big.Int).Set(0)
+// }
 
 func FromBin(binPackage []byte) *Package {
 	// TODO handle padding
@@ -127,12 +126,29 @@ func FromBin(binPackage []byte) *Package {
 }
 
 func (p Package) packageLength() int {
-	return len(p.packageType) + len(p.senderMac) + len(p.recieverMac) + len(*p.data) + 1 + len(p.mac.Data)
+	return len(p.packageType) + len(p.senderMac) + len(p.recieverMac) + len(*p.data) + len(p.iv.Data) + len(p.mac.Data)*5
 }
 
-func (Package) padData() []byte {
-	return
-}
+// func (p Package) padMessage() []byte {
+// 	l := p.packageLength()
+// 	blocks := l / 80
+// 	remainder := l % 80
+// 	binPackage := p.toBin()
+
+// 	padSize := 0
+// 	if remainder == 0 {
+// 		blocks += 1
+// 		emptSize = 80
+// 	} else if remainder <= 57 {
+// 		block += 1
+// 		padSize = 80 - remainder
+// 	} else {
+// 		blocks += 2
+// 		padSize = 160 - remainder
+// 	}
+
+// 	return
+// }
 
 func (Package) checkPadding() bool {
 	return false
