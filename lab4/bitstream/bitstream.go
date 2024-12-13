@@ -14,15 +14,24 @@ func NewBitStream() *BitStream {
 	return &BitStream{str: make([]bool, 0), bitLength: 0}
 }
 
-func (bs *BitStream) WriteBits(bitsToAdd byte, numBits int) {
+func (bs BitStream) Length() int {
+	return bs.bitLength
+}
+
+func (bs *BitStream) WriteBits(bitsToAdd int64, numBits int) {
 	for i := numBits - 1; i >= 0; i-- {
 		bs.str = append(bs.str, (bitsToAdd>>i)&1 == 1)
 		bs.bitLength++
 	}
 }
 
+func (bs *BitStream) Append(toAppend *BitStream) {
+	bs.str = append(bs.str, toAppend.str...)
+	bs.bitLength += toAppend.bitLength
+}
+
 func (bs *BitStream) WriteTelegraphChar(t crypto.TelegraphChar) {
-	bs.WriteBits(t.Char, 5)
+	bs.WriteBits(int64(t.Char), 5)
 }
 
 func (bs *BitStream) ReadBits(numBits int) int64 {

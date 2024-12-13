@@ -121,7 +121,7 @@ func (p Package) packageLength() int {
 	return total
 }
 
-func (p Package) padMessage() bitstream.BitStream {
+func (p Package) padPackage() bitstream.BitStream {
 	l := p.packageLength()
 	blocks := l / 80
 	remainder := l % 80
@@ -130,22 +130,38 @@ func (p Package) padMessage() bitstream.BitStream {
 	padSize := 0
 	if remainder == 0 {
 		blocks += 1
-		emptSize = 80
+		padSize = 80
 	} else if remainder <= 57 {
-		block += 1
+		blocks += 1
 		padSize = 80 - remainder
 	} else {
 		blocks += 2
 		padSize = 160 - remainder
 	}
+	padding := bitstream.NewBitStream()
+	padding.WriteBits(0b100, 3)
+	for i := 0; i < padSize-23; i++ {
+		padding.WriteBits(0b0, 1)
+	}
+	padding.WriteBits(int64(padSize), 7)
+	padding.WriteBits(int64(blocks), 10)
 
-	return
+	binPackage.Append(padding)
+
+	return binPackage
 }
 
-func (Package) checkPadding() bool {
-	return false
-}
+func (p Package) prepare() []*Block {
+	blocks := make([]*Block, 0)
+	binPaddedPackage := p.padPackage()
+	for i := 0; i < binPaddedPackage.Length()/80; i += 80 {
+		blockData := make([]*TelegraphChar, 16)
+		for j := 0; j < 16; j++ {
+			blockData[j] = &TelegraphChar{Char: byte(binPaddedPackage.ReadBits(5))}
+		}
+		newblock, _ := blockencryption.NewBlockFromTelegraphChars(blockData)
+		blocks = append(blocks, newblock)
+	}
 
-func (Package) unpadData() {
-	return
+	return blocks
 }
