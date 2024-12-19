@@ -121,7 +121,7 @@ func (p Package) packageLength() int {
 	return total
 }
 
-func (p Package) padPackage() bitstream.BitStream {
+func (p Package) Pad() bitstream.BitStream {
 	l := p.packageLength()
 	blocks := l / 80
 	remainder := l % 80
@@ -143,17 +143,47 @@ func (p Package) padPackage() bitstream.BitStream {
 	for i := 0; i < padSize-23; i++ {
 		padding.WriteBits(0b0, 1)
 	}
-	padding.WriteBits(int64(padSize), 7)
-	padding.WriteBits(int64(blocks), 10)
+	padding.WriteBits(int(padSize), 7)
+	padding.WriteBits(int(blocks), 10)
 
 	binPackage.Append(padding)
 
 	return binPackage
 }
 
-func (p Package) prepare() []*Block {
+func (p Package) Unpad() bitstream.BitStream {
+	l := p.packageLength()
+	blocks := l / 80
+	remainder := l % 80
+	binPackage := p.toBin()
+
+	padSize := 0
+	if remainder == 0 {
+		blocks += 1
+		padSize = 80
+	} else if remainder <= 57 {
+		blocks += 1
+		padSize = 80 - remainder
+	} else {
+		blocks += 2
+		padSize = 160 - remainder
+	}
+	padding := bitstream.NewBitStream()
+	padding.WriteBits(0b100, 3)
+	for i := 0; i < padSize-23; i++ {
+		padding.WriteBits(0b0, 1)
+	}
+	padding.WriteBits(int(padSize), 7)
+	padding.WriteBits(int(blocks), 10)
+
+	binPackage.Append(padding)
+
+	return binPackage
+}
+
+func (p Package) Prepare() []*Block {
 	blocks := make([]*Block, 0)
-	binPaddedPackage := p.padPackage()
+	binPaddedPackage := p.Pad()
 	for i := 0; i < binPaddedPackage.Length()/80; i += 80 {
 		blockData := make([]*TelegraphChar, 16)
 		for j := 0; j < 16; j++ {

@@ -18,8 +18,8 @@ func (bs BitStream) Length() int {
 	return bs.bitLength
 }
 
-func (bs *BitStream) WriteBits(bitsToAdd int64, numBits int) {
-	for i := numBits - 1; i >= 0; i-- {
+func (bs *BitStream) WriteBits(bitsToAdd int, numBits int) {
+	for i := 0; i < numBits; i++ {
 		bs.str = append(bs.str, (bitsToAdd>>i)&1 == 1)
 		bs.bitLength++
 	}
@@ -31,18 +31,18 @@ func (bs *BitStream) Append(toAppend *BitStream) {
 }
 
 func (bs *BitStream) WriteTelegraphChar(t crypto.TelegraphChar) {
-	bs.WriteBits(int64(t.Char), 5)
+	bs.WriteBits(int(t.Char), 5)
 }
 
-func (bs *BitStream) ReadBits(numBits int) int64 {
+func (bs *BitStream) ReadBits(numBits int) int {
 	if numBits > bs.bitLength {
 		numBits = bs.bitLength
 	}
 
-	var result int64
+	var result int
 	for i := 0; i < numBits; i++ {
 		if bs.str[i] {
-			result |= (1 << (numBits - 1 - i))
+			result |= (1 << i)
 		}
 
 	}
