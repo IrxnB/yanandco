@@ -124,28 +124,49 @@ func round(data []*crypto.TelegraphChar, key []*crypto.TelegraphChar, shift int)
 	return Skitala(res)
 }
 
-func (b *Block) Encrypt(key *Block, iterations int) error {
+func GenerateKeys(generator *generators.Generator, number int) [][]*crypto.TelegraphChar {
+	keys := make([][]*crypto.TelegraphChar, number)
+	for i := 0; i < number; i++ {
+		curKey := make([]*crypto.TelegraphChar, 16)
+		for j := 0; j < 4; j++ {
+			curBlock, _ := (*generator)().ToSBlock()
+			for k := 0; k < 4; k++ {
+				curKey[j+4*k] = curBlock.Chars[k]
+			}
+		}
+		keys[i] = curKey
+	}
+	return keys
+}
+
+func GenerateSeeds(key *Block) []*generators.SBlockInt {
 	seeds := make([]*sblockint.SBlockInt, 4)
 	for i := 0; i < 4; i++ {
 		seeds[i], _ = sblockint.NewSBlockIntFromSBlock(&crypto.SBlock{Chars: key.Data[i*4 : i*4+4]})
 	}
+	return seeds
+}
+
+func (b *Block) Encrypt(key *Block, iterations int) error {
+	seeds := GenerateSeeds(key)
 
 	generator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
-	for i := 0; i < 4; i++ {
-		cur_key, _ := (*generator)().ToSBlock()
-		for j := 0; j < 4; j++ {
-			b.Data[i*4+j] = b.Data[i*4+j].Xor(cur_key.Chars[j])
-		}
+
+	keys := GenerateKeys(generator, iterations+1)
+
+	return b.EncryptPregen(keys, iterations)
+}
+
+func (b *Block) EncryptPregen(keys [][]*crypto.TelegraphChar, iterations int) error {
+	if len(keys) != iterations+1 {
+		return fmt.Errorf("kal")
+	}
+	for i := 0; i < 16; i++ {
+		b.Data[i] = b.Data[i].Xor(keys[0][i])
 	}
 
 	for i := 0; i < iterations; i++ {
-		curKey := make([]*crypto.TelegraphChar, 16)
-		for i := 0; i < 4; i++ {
-			cur_key, _ := (*generator)().ToSBlock()
-			for j := 0; j < 4; j++ {
-				curKey[i*4+j] = cur_key.Chars[j]
-			}
-		}
+		curKey := keys[i+1]
 
 		left := b.Data[:8]
 		right := b.Data[8:]
@@ -163,28 +184,12 @@ func (b *Block) Encrypt(key *Block, iterations int) error {
 	return nil
 }
 
-func (b *Block) Decrypt(key *Block, iterations int) error {
-	seeds := make([]*sblockint.SBlockInt, 4)
-	for i := 0; i < 4; i++ {
-		seeds[i], _ = sblockint.NewSBlockIntFromSBlock(&crypto.SBlock{Chars: key.Data[i*4 : i*4+4]})
-	}
-	generator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
-	keys := make([]*Block, iterations+1)
-	for i := 0; i < iterations+1; i++ {
-		keys[i] = &Block{Data: make([]*crypto.TelegraphChar, 16)}
-		for j := 0; j < 4; j++ {
-			sblock, _ := (*generator)().ToSBlock()
-			for z := 0; z < 4; z++ {
-				keys[i].Data[j*4+z] = sblock.Chars[z]
-			}
-		}
-	}
-
+func (b *Block) DecryptPregen(keys [][]*crypto.TelegraphChar, iterations int) error {
 	for i := iterations - 1; i >= 0; i-- {
 		left := b.Data[:8]
 		right := b.Data[8:]
 
-		prevright := round(right, keys[i+1].Data, i*4)
+		prevright := round(right, keys[i+1], i*4)
 		for i, v := range prevright {
 			prevright[i] = v.Xor(left[i])
 		}
@@ -193,7 +198,15 @@ func (b *Block) Decrypt(key *Block, iterations int) error {
 	}
 
 	for i, v := range b.Data {
-		b.Data[i] = v.Xor(keys[0].Data[i])
+		b.Data[i] = v.Xor(keys[0][i])
 	}
 	return nil
+}
+
+func (b *Block) Decrypt(key *Block, iterations int) error {
+	seeds := GenerateSeeds(key)
+	generator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
+	keys := GenerateKeys(generator, iterations+1)
+
+	return b.DecryptPregen(keys, iterations)
 }
