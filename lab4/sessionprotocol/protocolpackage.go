@@ -16,22 +16,22 @@ type Package struct {
 	sessionId   [9]TelegraphChar
 	length      [5]TelegraphChar //можно в int переделать
 	iv          *Block
-	data        *[]TelegraphChar
+	data        []TelegraphChar
 	mac         *Block
 }
 
-func NewPackage(packageType,
+func NewPackage(packageType [2]TelegraphChar,
 	senderMac,
-	recieverMac,
-	sessionId []TelegraphChar,
+	recieverMac [8]TelegraphChar,
+	sessionId [9]TelegraphChar,
 	iv *Block,
-	data *[]TelegraphChar,
+	data []TelegraphChar,
 	mac *Block) *Package {
 	result := &Package{
-		packageType: [2]crypto.TelegraphChar(packageType),
-		senderMac:   [8]crypto.TelegraphChar(senderMac),
-		recieverMac: [8]crypto.TelegraphChar(recieverMac),
-		sessionId:   [9]crypto.TelegraphChar(sessionId),
+		packageType: packageType,
+		senderMac:   senderMac,
+		recieverMac: recieverMac,
+		sessionId:   sessionId,
 		iv:          iv,
 		data:        data,
 		mac:         mac,
@@ -55,7 +55,7 @@ func (p Package) toBin() *bitstream.BitStream {
 	for _, tc := range p.mac.Data {
 		bs.WriteTelegraphChar(*tc)
 	}
-	for _, tc := range *p.data {
+	for _, tc := range p.data {
 		bs.WriteTelegraphChar(tc)
 	}
 	for _, tc := range p.iv.Data {
@@ -118,7 +118,7 @@ func FromBin(bs bitstream.BitStream) *Package {
 	for i := bodyBlocks - 1; i >= 0; i-- {
 		data[i].Char = byte(bs.ReadBits(5))
 	}
-	p.data = &data
+	p.data = data
 
 	macData := make([]*crypto.TelegraphChar, 16)
 	for i := 15; i >= 0; i-- {
@@ -132,7 +132,7 @@ func FromBin(bs bitstream.BitStream) *Package {
 
 // bit length of data
 func (p Package) dataLength() int {
-	dataLen := len(*p.data) * 5
+	dataLen := len(p.data) * 5
 	return dataLen
 }
 
