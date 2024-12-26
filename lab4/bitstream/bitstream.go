@@ -51,3 +51,15 @@ func (bs *BitStream) ReadBits(numBits int) int {
 
 	return result
 }
+
+func (bs *BitStream) Copy() *BitStream {
+	res := NewBitStream()
+	for i := 0; i < bs.Length(); i++ {
+		bit := 0
+		if bs.str[i] {
+			bit = 1
+		}
+		res.WriteBits(bit, 1)
+	}
+	return res
+}

@@ -19,7 +19,7 @@ type Package struct {
 	mac         *Block
 }
 
-func (p Package) toBin() bitstream.BitStream {
+func (p Package) toBin() *bitstream.BitStream {
 	bs := bitstream.NewBitStream()
 
 	for _, tc := range p.packageType {
@@ -47,7 +47,7 @@ func (p Package) toBin() bitstream.BitStream {
 		bs.WriteTelegraphChar(*tc)
 	}
 
-	return *bs
+	return bs
 }
 
 func FromBin(bs bitstream.BitStream) *Package {
@@ -121,77 +121,86 @@ func (p Package) packageLength() int {
 	return total
 }
 
-func (p Package) Pad() bitstream.BitStream {
-	l := p.packageLength()
-	blocks := l / 80
-	remainder := l % 80
-	binPackage := p.toBin()
+func Unpad(bits *bitstream.BitStream) Package {
+	_, padLength := getBlockCountPadLengthIfPadValid(bits, bits.Length()/80)
 
-	padSize := 0
-	if remainder == 0 {
-		blocks += 1
-		padSize = 80
-	} else if remainder <= 57 {
-		blocks += 1
-		padSize = 80 - remainder
-	} else {
-		blocks += 2
-		padSize = 160 - remainder
-	}
-	padding := bitstream.NewBitStream()
-	padding.WriteBits(0b100, 3)
-	for i := 0; i < padSize-23; i++ {
-		padding.WriteBits(0b0, 1)
-	}
-	padding.WriteBits(int(padSize), 7)
-	padding.WriteBits(int(blocks), 10)
-
-	binPackage.Append(padding)
+	bits.ReadBits(padLength)
 
 	return binPackage
 }
 
-func (p Package) Unpad() bitstream.BitStream {
-	l := p.packageLength()
-	blocks := l / 80
-	remainder := l % 80
-	binPackage := p.toBin()
-
-	padSize := 0
-	if remainder == 0 {
-		blocks += 1
-		padSize = 80
-	} else if remainder <= 57 {
-		blocks += 1
-		padSize = 80 - remainder
-	} else {
-		blocks += 2
-		padSize = 160 - remainder
+func getBlockCountPadLengthIfPadValid(bits *bitstream.BitStream, blockCount int) (int, int) {
+	copy := bits.Copy()
+	end := copy.ReadBits(3)
+	if end != 0b001 {
+		return 0, 0
 	}
-	padding := bitstream.NewBitStream()
-	padding.WriteBits(0b100, 3)
-	for i := 0; i < padSize-23; i++ {
-		padding.WriteBits(0b0, 1)
+	n := copy.ReadBits(10)
+	if n != blockCount {
+		return 0, 0
 	}
-	padding.WriteBits(int(padSize), 7)
-	padding.WriteBits(int(blocks), 10)
-
-	binPackage.Append(padding)
-
-	return binPackage
+	l := copy.ReadBits(7)
+	placeholder := l - 23
+	for i := 0; i < placeholder; i++ {
+		zero := copy.ReadBits(1)
+		if zero != 0 {
+			return 0, 0
+		}
+	}
+	start := copy.ReadBits(3)
+	if start != 0b100 {
+		return 0, 0
+	}
+	return n, l
 }
 
-func (p Package) Prepare() []*Block {
-	blocks := make([]*Block, 0)
-	binPaddedPackage := p.Pad()
-	for i := 0; i < binPaddedPackage.Length()/80; i += 80 {
+func (p Package) Pad() []*Block {
+	bits := p.toBin()
+	blockCount := bits.Length() / 80
+	rem := bits.Length() % 80
+	if rem != 0 {
+		appendix, blockInc := createPadding(rem, blockCount)
+		blockCount += blockInc
+		bits.Append(appendix)
+	} else if n, _ := getBlockCountPadLengthIfPadValid(bits, blockCount); n != 0 {
+		appendix, blockInc := createPadding(80-23, blockCount)
+		blockCount += blockInc
+		bits.Append(appendix)
+	}
+	blocks := make([]*Block, blockCount)
+	for i := 0; i < bits.Length()/80; i += 80 {
 		blockData := make([]*TelegraphChar, 16)
 		for j := 0; j < 16; j++ {
-			blockData[j] = &TelegraphChar{Char: byte(binPaddedPackage.ReadBits(5))}
+			blockData[j] = &TelegraphChar{Char: byte(bits.ReadBits(5))}
 		}
 		newblock, _ := blockencryption.NewBlockFromTelegraphChars(blockData)
 		blocks = append(blocks, newblock)
 	}
 
 	return blocks
+}
+
+func createPadding(remainder int, initialBLocks int) (*bitstream.BitStream, int) {
+	blockInc := 0
+	placeholder := 0
+	res := bitstream.NewBitStream()
+	res.WriteBits(0b100, 3)
+	if remainder < 23 && remainder > 0 {
+		blockInc = 2
+		placeholder = 80 + remainder
+	}
+	if remainder >= 23 {
+		blockInc = 1
+		placeholder = remainder
+	}
+
+	res.WriteBits(initialBLocks+blockInc, 10)
+	res.WriteBits(placeholder+23, 7)
+
+	for i := 0; i < placeholder; i++ {
+		res.WriteBits(0b0, 1)
+	}
+
+	res.WriteBits(0b100, 3)
+	return res, blockInc
 }
