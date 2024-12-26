@@ -239,3 +239,7 @@ func createPadding(remainder int, initialBLocks int) (*bitstream.BitStream, int)
 	res.WriteBits(0b001, 3)
 	return res, blockInc
 }
+
+func (p Package) GetPackageType() []TelegraphChar {
+	return p.packageType[:]
+}
