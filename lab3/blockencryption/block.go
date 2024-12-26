@@ -210,3 +210,21 @@ func (b *Block) Decrypt(key *Block, iterations int) error {
 
 	return b.DecryptPregen(keys, iterations)
 }
+
+func (b Block) Xor(other Block) Block {
+	chars := len(b.Data)
+	result := make([]*crypto.TelegraphChar, chars)
+	for pos, val := range b.Data {
+		result[pos] = val.Xor(other.Data[pos])
+	}
+	return Block{Data: result}
+}
+
+func (b Block) Copy() Block {
+	chars := len(b.Data)
+	result := make([]*crypto.TelegraphChar, chars)
+	for pos, val := range b.Data {
+		result[pos] = &crypto.TelegraphChar{Char: val.Char}
+	}
+	return Block{Data: result}
+}

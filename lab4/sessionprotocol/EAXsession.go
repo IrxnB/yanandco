@@ -19,6 +19,17 @@ type Session struct {
 	iv          Block
 	key         Block
 	packageType [2]TelegraphChar
+	iterations  int
+	roundKeys   [][]*crypto.TelegraphChar
+}
+
+func CreateSession(key Block, iterations int) Session {
+	seeds := blockencryption.GenerateSeeds(&key)
+	generator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
+	
+
+	//Посчитать SEC и тд
+	return Session{roundKeys: roundKeys}
 }
 
 func NewSession(packageType string, senderMac string, recieverMac string, key string) (Session, error) {
@@ -34,6 +45,7 @@ func NewSession(packageType string, senderMac string, recieverMac string, key st
 
 	sessionKey, _ := blockencryption.NewBlockFromString(key)
 	seeds := blockencryption.GenerateSeeds(sessionKey)
+  sessionRoundKeys := blockencryption.GenerateKeys(generator, iterations+1)
 	lgenerator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
 	generator := *lgenerator
 	sessionId := make([]TelegraphChar, 9)
@@ -79,6 +91,7 @@ func NewSession(packageType string, senderMac string, recieverMac string, key st
 		senderMac:   [8]TelegraphChar(sessionSenderMac),
 		receiverMac: [8]TelegraphChar(sessionRecieverMac),
 		iv:          *iv,
+    roundKeys:   sessionRoundKeys
 	}, nil
 }
 
@@ -107,12 +120,26 @@ func (Session) RecieveMessage() (string, error) {
 	return "", nil
 }
 
-func (Session) CFB() {
-	// реализовывать сразу с CIV
-	// Вынес сюда, потому что у Package нет SEC, но он есть непосредственно у получателя и отправителя
-	return
+func (s Session) CFB(data []Block, iv Block) []Block {
+	blocks := len(data)
+	result := make([]Block, blocks)
+	prev := iv.Copy()
+	for i := 0; i < blocks; i++ {
+		prev.EncryptPregen(s.roundKeys, s.iterations)
+		result[i] = data[i].Xor(prev)
+		prev = result[i].Copy()
+	}
+	return result
 }
 
-func (Session) CFBinv() {
-	return
+func (s Session) CFBinv(data []Block, iv Block) []Block {
+	blocks := len(data)
+	result := make([]Block, blocks)
+	prev := iv.Copy()
+	for i := blocks - 1; i >= 0; i++ {
+		prev.EncryptPregen(s.roundKeys, s.iterations)
+		result[i] = data[i].Xor(prev)
+		prev = data[i].Copy()
+	}
+	return result
 }

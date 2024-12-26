@@ -9,6 +9,7 @@ import (
 
 func TestPadding(t *testing.T) {
 	packageType := make([]crypto.TelegraphChar, 2)
+	packageType[0] = crypto.TelegraphChar{Char: 31}
 	senderMac := make([]crypto.TelegraphChar, 8)
 	recieverMac := make([]crypto.TelegraphChar, 8)
 	sessionId := make([]crypto.TelegraphChar, 9)
@@ -25,7 +26,8 @@ func TestPadding(t *testing.T) {
 	mac, _ := blockencryption.NewBlockFromTelegraphChars(macData)
 	pack := sessionprotocol.NewPackage(packageType, senderMac, recieverMac, sessionId, iv, &data, mac)
 
-	bits, blockCount := pack.PadToBits()
+	bits, _ := pack.PadToBits()
 	unpadded := sessionprotocol.Unpad(bits)
-	t.Log(blockCount, unpadded)
+
+	t.Log(unpadded.GetPackageType()[0].Char)
 }
