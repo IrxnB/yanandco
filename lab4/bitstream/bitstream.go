@@ -41,13 +41,13 @@ func (bs *BitStream) ReadBits(numBits int) int {
 
 	var result int
 	for i := 0; i < numBits; i++ {
-		if bs.str[i] {
+		if bs.str[bs.bitLength-numBits+i] {
 			result |= (1 << i)
 		}
 
 	}
-	bs.str = bs.str[numBits:]
 	bs.bitLength -= numBits
+	bs.str = bs.str[:bs.bitLength]
 
 	return result
 }

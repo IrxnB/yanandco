@@ -2,6 +2,7 @@ package sessionprotocol
 
 import (
 	"yanandco/lab1/crypto"
+	"yanandco/lab2/bitoperations"
 	"yanandco/lab3/blockencryption"
 	"yanandco/lab4/bitstream"
 )
@@ -19,32 +20,61 @@ type Package struct {
 	mac         *Block
 }
 
+func NewPackage(packageType,
+	senderMac,
+	recieverMac,
+	sessionId []TelegraphChar,
+	iv *Block,
+	data *[]TelegraphChar,
+	mac *Block) *Package {
+	result := &Package{
+		packageType: [2]crypto.TelegraphChar(packageType),
+		senderMac:   [8]crypto.TelegraphChar(senderMac),
+		recieverMac: [8]crypto.TelegraphChar(recieverMac),
+		sessionId:   [9]crypto.TelegraphChar(sessionId),
+		iv:          iv,
+		data:        data,
+		mac:         mac,
+	}
+	length := result.packageLength()
+	result.length = [5]crypto.TelegraphChar(make([]crypto.TelegraphChar, 5))
+	for i := 0; i < 5; i++ {
+		cur := 0
+		for j := 0; j < 5; j++ {
+			cur = bitoperations.SetNBit(cur, j, bitoperations.GetNbit(length, i*5+j))
+		}
+		result.length[i] = crypto.TelegraphChar{Char: byte(cur)}
+	}
+
+	return result
+}
+
 func (p Package) toBin() *bitstream.BitStream {
 	bs := bitstream.NewBitStream()
 
-	for _, tc := range p.packageType {
-		bs.WriteTelegraphChar(tc)
-	}
-	for _, tc := range p.senderMac {
-		bs.WriteTelegraphChar(tc)
-	}
-	for _, tc := range p.recieverMac {
-		bs.WriteTelegraphChar(tc)
-	}
-	for _, tc := range p.sessionId {
-		bs.WriteTelegraphChar(tc)
-	}
-	for _, tc := range p.length {
-		bs.WriteTelegraphChar(tc)
-	}
-	for _, tc := range p.iv.Data {
+	for _, tc := range p.mac.Data {
 		bs.WriteTelegraphChar(*tc)
 	}
 	for _, tc := range *p.data {
 		bs.WriteTelegraphChar(tc)
 	}
-	for _, tc := range p.mac.Data {
+	for _, tc := range p.iv.Data {
 		bs.WriteTelegraphChar(*tc)
+	}
+	for _, tc := range p.length {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.sessionId {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.recieverMac {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.senderMac {
+		bs.WriteTelegraphChar(tc)
+	}
+	for _, tc := range p.packageType {
+		bs.WriteTelegraphChar(tc)
 	}
 
 	return bs
@@ -53,42 +83,45 @@ func (p Package) toBin() *bitstream.BitStream {
 func FromBin(bs bitstream.BitStream) *Package {
 	p := &Package{}
 
-	for i := 0; i < 2; i++ {
+	for i := 1; i >= 0; i-- {
 		p.packageType[i].Char = byte(bs.ReadBits(5))
 	}
 
-	for i := 0; i < 8; i++ {
+	for i := 7; i >= 0; i-- {
 		p.senderMac[i].Char = byte(bs.ReadBits(5))
 	}
 
-	for i := 0; i < 8; i++ {
+	for i := 7; i >= 0; i-- {
 		p.recieverMac[i].Char = byte(bs.ReadBits(5))
 	}
 
-	for i := 0; i < 9; i++ {
+	for i := 8; i >= 0; i-- {
 		p.sessionId[i].Char = byte(bs.ReadBits(5))
 	}
 
-	for i := 0; i < 5; i++ {
+	for i := 4; i >= 0; i-- {
 		p.length[i].Char = byte(bs.ReadBits(5))
 	}
 
 	ivData := make([]*crypto.TelegraphChar, 16)
-	for i := 0; i < 16; i++ {
+	for i := 15; i >= 0; i-- {
 		ivData[i] = &crypto.TelegraphChar{Char: byte(bs.ReadBits(5))}
 	}
 	p.iv, _ = blockencryption.NewBlockFromTelegraphChars(ivData)
 
-	dataLen := p.dataLength()
-
-	data := make([]crypto.TelegraphChar, dataLen)
-	for i := 0; i < dataLen; i++ {
+	dataLen := 0
+	for pos, val := range p.length {
+		dataLen |= int(val.GetByte()) << (pos * 5)
+	}
+	bodyBlocks := dataLen/5 - 64
+	data := make([]crypto.TelegraphChar, bodyBlocks)
+	for i := bodyBlocks - 1; i >= 0; i-- {
 		data[i].Char = byte(bs.ReadBits(5))
 	}
 	p.data = &data
 
 	macData := make([]*crypto.TelegraphChar, 16)
-	for i := 0; i < 16; i++ {
+	for i := 15; i >= 0; i-- {
 		macData[i] = &crypto.TelegraphChar{Char: byte(bs.ReadBits(5))}
 	}
 
@@ -99,11 +132,7 @@ func FromBin(bs bitstream.BitStream) *Package {
 
 // bit length of data
 func (p Package) dataLength() int {
-	dataLen := 0
-	for _, char := range p.length {
-		dataLen += int(char.Char)
-	}
-	dataLen *= 5
+	dataLen := len(*p.data) * 5
 	return dataLen
 }
 
@@ -126,7 +155,7 @@ func Unpad(bits *bitstream.BitStream) Package {
 
 	bits.ReadBits(padLength)
 
-	return binPackage
+	return *FromBin(*bits)
 }
 
 func getBlockCountPadLengthIfPadValid(bits *bitstream.BitStream, blockCount int) (int, int) {
@@ -135,11 +164,12 @@ func getBlockCountPadLengthIfPadValid(bits *bitstream.BitStream, blockCount int)
 	if end != 0b001 {
 		return 0, 0
 	}
+
+	l := copy.ReadBits(7)
 	n := copy.ReadBits(10)
 	if n != blockCount {
 		return 0, 0
 	}
-	l := copy.ReadBits(7)
 	placeholder := l - 23
 	for i := 0; i < placeholder; i++ {
 		zero := copy.ReadBits(1)
@@ -155,18 +185,9 @@ func getBlockCountPadLengthIfPadValid(bits *bitstream.BitStream, blockCount int)
 }
 
 func (p Package) Pad() []*Block {
-	bits := p.toBin()
-	blockCount := bits.Length() / 80
-	rem := bits.Length() % 80
-	if rem != 0 {
-		appendix, blockInc := createPadding(rem, blockCount)
-		blockCount += blockInc
-		bits.Append(appendix)
-	} else if n, _ := getBlockCountPadLengthIfPadValid(bits, blockCount); n != 0 {
-		appendix, blockInc := createPadding(80-23, blockCount)
-		blockCount += blockInc
-		bits.Append(appendix)
-	}
+
+	bits, blockCount := p.PadToBits()
+	bits = bits.Copy()
 	blocks := make([]*Block, blockCount)
 	for i := 0; i < bits.Length()/80; i += 80 {
 		blockData := make([]*TelegraphChar, 16)
@@ -180,6 +201,22 @@ func (p Package) Pad() []*Block {
 	return blocks
 }
 
+func (p Package) PadToBits() (*bitstream.BitStream, int) {
+	bits := p.toBin()
+	blockCount := bits.Length() / 80
+	rem := 80 - bits.Length()%80
+	if rem != 0 {
+		appendix, blockInc := createPadding(rem, blockCount)
+		blockCount += blockInc
+		bits.Append(appendix)
+	} else if n, _ := getBlockCountPadLengthIfPadValid(bits, blockCount); n != 0 {
+		appendix, blockInc := createPadding(80-23, blockCount)
+		blockCount += blockInc
+		bits.Append(appendix)
+	}
+	return bits, blockCount
+}
+
 func createPadding(remainder int, initialBLocks int) (*bitstream.BitStream, int) {
 	blockInc := 0
 	placeholder := 0
@@ -187,20 +224,18 @@ func createPadding(remainder int, initialBLocks int) (*bitstream.BitStream, int)
 	res.WriteBits(0b100, 3)
 	if remainder < 23 && remainder > 0 {
 		blockInc = 2
-		placeholder = 80 + remainder
+		placeholder = 80 + remainder - 23
 	}
 	if remainder >= 23 {
 		blockInc = 1
-		placeholder = remainder
+		placeholder = remainder - 23
 	}
-
-	res.WriteBits(initialBLocks+blockInc, 10)
-	res.WriteBits(placeholder+23, 7)
 
 	for i := 0; i < placeholder; i++ {
 		res.WriteBits(0b0, 1)
 	}
-
-	res.WriteBits(0b100, 3)
+	res.WriteBits(initialBLocks+blockInc, 10)
+	res.WriteBits(placeholder+23, 7)
+	res.WriteBits(0b001, 3)
 	return res, blockInc
 }
