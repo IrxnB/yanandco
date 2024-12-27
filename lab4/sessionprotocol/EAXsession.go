@@ -113,16 +113,17 @@ func (session Session) SendMessage(message string) {
 		&session.iv,
 		data,
 		mac)
-	s.EAXCFB(pack)
-
+	encrypted := s.EAXCFB(pack)
+	session.message = pack.toBin(encrypted)
 	session.iv.Data[0] = session.iv.Data[0].Plus(&TelegraphChar{Char: 1})
-
 	return
 }
 
-func (Session) RecieveMessage() (string, error) {
-	// перехватить ошибки если сообщение было повреждено
-	return "", nil
+func (session Session) RecieveMessage() (string, error) {
+	encrypted := FromBin(session.message)
+	pack := session.EAXCFBinv(*encrypted)
+	message := crypto.ToString(pack.data)
+	return message, nil
 }
 
 func (s Session) CFB(data []Block, iv Block) []Block {
@@ -149,7 +150,7 @@ func (s Session) CFBinv(data []Block, iv Block) []Block {
 	return result
 }
 
-func (s Session) EAXCFB(pack Package) {
+func (s Session) EAXCFB(pack Package) Package {
 	assData := make([]*TelegraphChar, 16)
 	for i := 0; i < 2; i++ { // refactor to Package function
 		assData[i] = &TelegraphChar{Char: pack.packageType[i].Char}
@@ -168,10 +169,11 @@ func (s Session) EAXCFB(pack Package) {
 	civ := s.CFB(assDataBlocks, *s.iv)
 	tmp := s.CFB(pack.data, civ) // so cfb must be called only on data?
 	// mac := xor(xor(tmp, civ)s.cmac)
+	return Package{}
 
 }
 
-func (s Session) EAXCFBinv(pack Package) {
+func (s Session) EAXCFBinv(pack Package) Package {
 	assData := make([]*TelegraphChar, 16)
 	for i := 0; i < 2; i++ {
 		assData[i] = &TelegraphChar{Char: pack.packageType[i].Char}
@@ -192,5 +194,5 @@ func (s Session) EAXCFBinv(pack Package) {
 	}
 	sec = append(sec, constadd...)
 	cmac := s.CFB(data, *s.iv) // should be sec instead of iv
-
+	return Package{}
 }
