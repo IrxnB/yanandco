@@ -24,7 +24,15 @@ func TestPadding(t *testing.T) {
 
 	iv, _ := blockencryption.NewBlockFromTelegraphChars(ivData)
 	mac, _ := blockencryption.NewBlockFromTelegraphChars(macData)
-	pack := sessionprotocol.NewPackage(packageType, senderMac, recieverMac, sessionId, iv, &data, mac)
+	pack := sessionprotocol.NewPackage(
+		[2]crypto.TelegraphChar(packageType),
+		[8]crypto.TelegraphChar(senderMac),
+		[8]crypto.TelegraphChar(recieverMac),
+		[9]crypto.TelegraphChar(sessionId),
+		iv,
+		data,
+		mac,
+	)
 
 	bits, _ := pack.PadToBits()
 	unpadded := sessionprotocol.Unpad(bits)

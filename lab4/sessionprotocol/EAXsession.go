@@ -21,18 +21,16 @@ type Session struct {
 	packageType [2]TelegraphChar
 	iterations  int
 	roundKeys   [][]*crypto.TelegraphChar
+	cmac        Block
 }
 
-func CreateSession(key Block, iterations int) Session {
-	seeds := blockencryption.GenerateSeeds(&key)
-	generator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
-	
-
-	//Посчитать SEC и тд
-	return Session{roundKeys: roundKeys}
-}
-
-func NewSession(packageType string, senderMac string, recieverMac string, key string) (Session, error) {
+func NewSession(
+	packageType string,
+	senderMac string,
+	recieverMac string,
+	key string,
+	iterations int,
+) (Session, error) {
 	if len(senderMac) != 8 {
 		return Session{}, errors.New("Wrong sender mac length: must be 8")
 	}
@@ -45,9 +43,9 @@ func NewSession(packageType string, senderMac string, recieverMac string, key st
 
 	sessionKey, _ := blockencryption.NewBlockFromString(key)
 	seeds := blockencryption.GenerateSeeds(sessionKey)
-  sessionRoundKeys := blockencryption.GenerateKeys(generator, iterations+1)
 	lgenerator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
 	generator := *lgenerator
+	sessionRoundKeys := blockencryption.GenerateKeys(lgenerator, iterations+1)
 	sessionId := make([]TelegraphChar, 9)
 	for i := 0; i < 9; i++ {
 		newChars, _ := generator().ToSBlock()
@@ -58,9 +56,9 @@ func NewSession(packageType string, senderMac string, recieverMac string, key st
 	if packageType == "31" {
 		sessionPackageType[0] = TelegraphChar{Char: 3}
 		sessionPackageType[1] = TelegraphChar{Char: 1}
-	} else if packageType == "31" {
+	} else if packageType == "32" {
 		sessionPackageType[0] = TelegraphChar{Char: 3}
-		sessionPackageType[1] = TelegraphChar{Char: 1}
+		sessionPackageType[1] = TelegraphChar{Char: 2}
 	} else {
 		return Session{}, errors.New("Wrong package type")
 	}
@@ -74,25 +72,31 @@ func NewSession(packageType string, senderMac string, recieverMac string, key st
 		sessionRecieverMac[i] = *tc
 	}
 
-	// sec := append(sessionSenderMac, sessionRecieverMac...)
-	// sec = append(sec, sessionPackageType...)
-	// sec = append(sec, sessionId...)
-	// constadd := make([]TelegraphChar, ?)
-
-	// sessionSec = append(sessionSec, crypto.TelegraphChar{Char: 0})
-	sessionSec, _ := blockencryption.NewBlockFromString("шестнадцатьсимво")
+	sec := append(sessionPackageType, sessionSenderMac...)
+	sec = append(sec, sessionRecieverMac...)
+	sec = append(sec, sessionPackageType...)
+	sec = append(sec, sessionId...)
+	constadd := make([]TelegraphChar, 5)
+	for i := 0; i < 5; i++ {
+		constadd[i] = TelegraphChar{Char: 0}
+	}
+	sec = append(sec, constadd...)
+	sessionSec, _ := blockencryption.NewBlockFromTelegraphChars(sec)
 	iv, _ := blockencryption.NewBlockFromString("                ") //init as 0
-
-	return Session{
+	session = Session{
 		packageType: [2]crypto.TelegraphChar(sessionPackageType),
 		id:          [9]TelegraphChar(sessionId),
 		key:         *sessionKey,
-		sec:         *sessionSec,
+		sec:         sec,
 		senderMac:   [8]TelegraphChar(sessionSenderMac),
 		receiverMac: [8]TelegraphChar(sessionRecieverMac),
 		iv:          *iv,
-    roundKeys:   sessionRoundKeys
-	}, nil
+		roundKeys:   sessionRoundKeys,
+		iterations:  iterations,
+	}
+	session.cmac = s.CFB(session.sec, "шестнадцатьсимво")
+
+	return session, nil
 }
 
 func (session Session) SendMessage(message string) {
@@ -110,6 +114,9 @@ func (session Session) SendMessage(message string) {
 		&session.iv,
 		data,
 		mac)
+	s.calc_mac()
+	s.EAXCFB(pack)
+
 	session.iv.Data[0] = session.iv.Data[0].Plus(&TelegraphChar{Char: 1})
 
 	return
@@ -142,4 +149,36 @@ func (s Session) CFBinv(data []Block, iv Block) []Block {
 		prev = data[i].Copy()
 	}
 	return result
+}
+
+func (s Session) calc_mac() []Block {
+	foo := make([]Block, 1)
+	foo[0] = s.sec
+	return s.CFB(foo, s.iv)
+}
+
+func (s Session) EAXCFB(pack Package) {
+	assData := make([]*TelegraphChar, 16)
+	for i := 0; i < 2; i++ {
+		assData[i] = &TelegraphChar{Char: pack.packageType[i].Char}
+	}
+	for i := 2; i < 11; i++ {
+		assData[i] = &TelegraphChar{Char: pack.sessionId[i].Char}
+	}
+	for i := 11; i < 16; i++ {
+		assData[i] = &TelegraphChar{Char: pack.length[i].Char}
+	}
+	assDataBlock, _ := blockencryption.NewBlockFromTelegraphChars(assData)
+	assDataBlocks := make([]Block, 2)
+	assDataBlocks[0] = assDataBlock.Copy() // how can I do that even assDataBlock is a link not an object
+	assDataBlocks[1] = s.sec.Copy()
+
+	civ := s.CFB(assDataBlocks, s.iv)
+	tmp := s.CFB(pack.data, civ)
+	// mac := xor(xor(tmp, civ)civ)
+
+}
+
+func (s Session) EAXCFBinv() {
+
 }

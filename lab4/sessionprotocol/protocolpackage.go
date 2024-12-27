@@ -49,6 +49,10 @@ func NewPackage(packageType [2]TelegraphChar,
 	return result
 }
 
+func (p Package) SetData(data []TelegraphChar) {
+	p.data = data
+}
+
 func (p Package) toBin() *bitstream.BitStream {
 	bs := bitstream.NewBitStream()
 
