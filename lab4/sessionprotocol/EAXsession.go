@@ -11,17 +11,17 @@ import (
 type TelegraphChar = crypto.TelegraphChar
 
 type Session struct {
-	id          [9]TelegraphChar
-	message     bitstream.BitStream
-	senderMac   [8]TelegraphChar
-	receiverMac [8]TelegraphChar
-	sec         Block
-	iv          Block
-	key         Block
-	packageType [2]TelegraphChar
+	id          [9]*TelegraphChar
+	message     *bitstream.BitStream
+	senderMac   [8]*TelegraphChar
+	receiverMac [8]*TelegraphChar
+	sec         *Block
+	iv          *Block
+	key         *Block
+	packageType [2]*TelegraphChar
 	iterations  int
-	roundKeys   [][]*crypto.TelegraphChar
-	cmac        Block
+	roundKeys   [][]*TelegraphChar
+	cmac        *Block
 }
 
 func NewSession(
@@ -38,63 +38,63 @@ func NewSession(
 		return Session{}, errors.New("Wrong reciever mac length: must be 8")
 	}
 
-	sessionSenderMac := make([]crypto.TelegraphChar, 8)
-	sessionRecieverMac := make([]crypto.TelegraphChar, 8)
+	sessionSenderMac := make([]*TelegraphChar, 8)
+	sessionRecieverMac := make([]*TelegraphChar, 8)
 
 	sessionKey, _ := blockencryption.NewBlockFromString(key)
 	seeds := blockencryption.GenerateSeeds(sessionKey)
 	lgenerator, _ := generators.LinearComposition(seeds, generators.AlternatingLSFR)
 	generator := *lgenerator
 	sessionRoundKeys := blockencryption.GenerateKeys(lgenerator, iterations+1)
-	sessionId := make([]TelegraphChar, 9)
+	sessionId := make([]*TelegraphChar, 9)
 	for i := 0; i < 9; i++ {
 		newChars, _ := generator().ToSBlock()
-		sessionId[i] = *newChars.Chars[0]
+		sessionId[i] = newChars.Chars[0]
 	}
 
-	sessionPackageType := make([]crypto.TelegraphChar, 2)
+	sessionPackageType := make([]*TelegraphChar, 2)
 	if packageType == "31" {
-		sessionPackageType[0] = TelegraphChar{Char: 3}
-		sessionPackageType[1] = TelegraphChar{Char: 1}
+		sessionPackageType[0] = &TelegraphChar{Char: 3}
+		sessionPackageType[1] = &TelegraphChar{Char: 1}
 	} else if packageType == "32" {
-		sessionPackageType[0] = TelegraphChar{Char: 3}
-		sessionPackageType[1] = TelegraphChar{Char: 2}
+		sessionPackageType[0] = &TelegraphChar{Char: 3}
+		sessionPackageType[1] = &TelegraphChar{Char: 2}
 	} else {
 		return Session{}, errors.New("Wrong package type")
 	}
 
 	for i, c := range senderMac {
 		tc, _ := crypto.NewTelegraphChar(c)
-		sessionSenderMac[i] = *tc
+		sessionSenderMac[i] = tc
 	}
 	for i, c := range recieverMac {
 		tc, _ := crypto.NewTelegraphChar(c)
-		sessionRecieverMac[i] = *tc
+		sessionRecieverMac[i] = tc
 	}
 
 	sec := append(sessionPackageType, sessionSenderMac...)
 	sec = append(sec, sessionRecieverMac...)
 	sec = append(sec, sessionPackageType...)
 	sec = append(sec, sessionId...)
-	constadd := make([]TelegraphChar, 5)
+	constadd := make([]*TelegraphChar, 5)
 	for i := 0; i < 5; i++ {
-		constadd[i] = TelegraphChar{Char: 0}
+		constadd[i] = &TelegraphChar{Char: 0}
 	}
 	sec = append(sec, constadd...)
 	sessionSec, _ := blockencryption.NewBlockFromTelegraphChars(sec)
 	iv, _ := blockencryption.NewBlockFromString("                ") //init as 0
-	session = Session{
-		packageType: [2]crypto.TelegraphChar(sessionPackageType),
-		id:          [9]TelegraphChar(sessionId),
-		key:         *sessionKey,
-		sec:         sec,
-		senderMac:   [8]TelegraphChar(sessionSenderMac),
-		receiverMac: [8]TelegraphChar(sessionRecieverMac),
-		iv:          *iv,
+	session := Session{
+		packageType: [2]*TelegraphChar(sessionPackageType),
+		id:          [9]*TelegraphChar(sessionId),
+		key:         sessionKey,
+		sec:         sessionSec,
+		senderMac:   [8]*TelegraphChar(sessionSenderMac),
+		receiverMac: [8]*TelegraphChar(sessionRecieverMac),
+		iv:          iv,
 		roundKeys:   sessionRoundKeys,
 		iterations:  iterations,
 	}
-	session.cmac = s.CFB(session.sec, "шестнадцатьсимво")
+	session.cmac = session.CFB(session.sec, iv)
 
 	return session, nil
 }
@@ -114,7 +114,6 @@ func (session Session) SendMessage(message string) {
 		&session.iv,
 		data,
 		mac)
-	s.calc_mac()
 	s.EAXCFB(pack)
 
 	session.iv.Data[0] = session.iv.Data[0].Plus(&TelegraphChar{Char: 1})
@@ -149,12 +148,6 @@ func (s Session) CFBinv(data []Block, iv Block) []Block {
 		prev = data[i].Copy()
 	}
 	return result
-}
-
-func (s Session) calc_mac() []Block {
-	foo := make([]Block, 1)
-	foo[0] = s.sec
-	return s.CFB(foo, s.iv)
 }
 
 func (s Session) EAXCFB(pack Package) {
