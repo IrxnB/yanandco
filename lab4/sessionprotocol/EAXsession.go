@@ -74,7 +74,6 @@ func NewSession(
 
 	sec := append(sessionPackageType, sessionSenderMac...)
 	sec = append(sec, sessionRecieverMac...)
-	sec = append(sec, sessionPackageType...)
 	sec = append(sec, sessionId...)
 	constadd := make([]*TelegraphChar, 5)
 	for i := 0; i < 5; i++ {
@@ -152,7 +151,7 @@ func (s Session) CFBinv(data []Block, iv Block) []Block {
 
 func (s Session) EAXCFB(pack Package) {
 	assData := make([]*TelegraphChar, 16)
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 2; i++ { // refactor to Package function
 		assData[i] = &TelegraphChar{Char: pack.packageType[i].Char}
 	}
 	for i := 2; i < 11; i++ {
@@ -163,15 +162,35 @@ func (s Session) EAXCFB(pack Package) {
 	}
 	assDataBlock, _ := blockencryption.NewBlockFromTelegraphChars(assData)
 	assDataBlocks := make([]Block, 2)
-	assDataBlocks[0] = assDataBlock.Copy() // how can I do that even assDataBlock is a link not an object
+	assDataBlocks[0] = assDataBlock.Copy() // how can I do that even assDataBlock is a pointer not an object
 	assDataBlocks[1] = s.sec.Copy()
 
-	civ := s.CFB(assDataBlocks, s.iv)
-	tmp := s.CFB(pack.data, civ)
-	// mac := xor(xor(tmp, civ)civ)
+	civ := s.CFB(assDataBlocks, *s.iv)
+	tmp := s.CFB(pack.data, civ) // so cfb must be called only on data?
+	// mac := xor(xor(tmp, civ)s.cmac)
 
 }
 
-func (s Session) EAXCFBinv() {
+func (s Session) EAXCFBinv(pack Package) {
+	assData := make([]*TelegraphChar, 16)
+	for i := 0; i < 2; i++ {
+		assData[i] = &TelegraphChar{Char: pack.packageType[i].Char}
+	}
+	for i := 2; i < 11; i++ {
+		assData[i] = &TelegraphChar{Char: pack.sessionId[i].Char}
+	}
+	for i := 11; i < 16; i++ {
+		assData[i] = &TelegraphChar{Char: pack.length[i].Char}
+	}
+
+	sec := append(pack.packageType[:], pack.senderMac[:]...)
+	sec = append(sec, pack.recieverMac[:]...)
+	sec = append(sec, pack.sessionId[:]...)
+	constadd := make([]TelegraphChar, 5)
+	for i := 0; i < 5; i++ {
+		constadd[i] = TelegraphChar{Char: 0}
+	}
+	sec = append(sec, constadd...)
+	cmac := s.CFB(data, *s.iv) // should be sec instead of iv
 
 }
