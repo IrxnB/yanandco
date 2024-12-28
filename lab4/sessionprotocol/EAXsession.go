@@ -81,7 +81,7 @@ func NewSession(
 	}
 	sec = append(sec, constadd...)
 	sessionSec, _ := blockencryption.NewBlockFromTelegraphChars(sec)
-	iv, _ := blockencryption.NewBlockFromString("                ") //init as 0
+	iv, _ := blockencryption.NewBlockFromString("                ") // init as 0
 	session := Session{
 		packageType: [2]*TelegraphChar(sessionPackageType),
 		id:          [9]*TelegraphChar(sessionId),
@@ -93,34 +93,35 @@ func NewSession(
 		roundKeys:   sessionRoundKeys,
 		iterations:  iterations,
 	}
-	session.cmac = session.CFB(session.sec, iv)
-
+	secBlocks := make([]Block, 1)
+	secBlocks[0] = *session.sec
+	session.cmac = &(session.CFB(secBlocks, *iv)[0])
 	return session, nil
 }
 
 func (session Session) SendMessage(message string) {
-	rune_data := []rune(message)
-	data := make([]TelegraphChar, len(rune_data))
-	for i, r := range rune_data {
+	runeData := []rune(message)
+	data := make([]*TelegraphChar, len(runeData))
+	for i, r := range runeData {
 		tc, _ := crypto.NewTelegraphChar(r)
-		data[i] = *tc
+		data[i] = tc
 	}
 	pack := NewPackage(
 		session.packageType,
 		session.receiverMac,
 		session.senderMac,
 		session.id,
-		&session.iv,
+		session.iv,
 		data,
-		mac)
-	encrypted := s.EAXCFB(pack)
-	session.message = pack.toBin(encrypted)
+		session.cmac)
+	encrypted := session.EAXCFB(*pack)
+	session.message = encrypted.toBin()
 	session.iv.Data[0] = session.iv.Data[0].Plus(&TelegraphChar{Char: 1})
 	return
 }
 
 func (session Session) RecieveMessage() (string, error) {
-	encrypted := FromBin(session.message)
+	encrypted := FromBin(*session.message)
 	pack := session.EAXCFBinv(*encrypted)
 	message := crypto.ToString(pack.data)
 	return message, nil
@@ -166,11 +167,14 @@ func (s Session) EAXCFB(pack Package) Package {
 	assDataBlocks[0] = assDataBlock.Copy() // how can I do that even assDataBlock is a pointer not an object
 	assDataBlocks[1] = s.sec.Copy()
 
-	civ := s.CFB(assDataBlocks, *s.iv)
-	tmp := s.CFB(pack.data, civ) // so cfb must be called only on data?
-	// mac := xor(xor(tmp, civ)s.cmac)
-	return Package{}
+	civ := s.CFB(assDataBlocks, *s.iv)[1]
+	data := blockencryption.FromPointers(pack.Pad())
 
+	tmp := s.CFB(data, civ) // so cfb must be called only on data?
+	mac := tmp[len(data)-1].Xor(civ).Xor(*s.cmac)
+	pack.mac = &mac
+	pack.data = blockencryption.ToTelegraphChars(blockencryption.ToPointers(data))
+	return Package{}
 }
 
 func (s Session) EAXCFBinv(pack Package) Package {
@@ -192,7 +196,15 @@ func (s Session) EAXCFBinv(pack Package) Package {
 	for i := 0; i < 5; i++ {
 		constadd[i] = TelegraphChar{Char: 0}
 	}
-	sec = append(sec, constadd...)
-	cmac := s.CFB(data, *s.iv) // should be sec instead of iv
+	sec = append(sec, crypto.ToPointers(constadd)...)
+	secBlock, _ := blockencryption.NewBlockFromTelegraphChars(sec)
+
+	assDataBlocks := make([]Block, 2)
+	assDataBlock, _ := blockencryption.NewBlockFromTelegraphChars(assData)
+	assDataBlocks = append(assDataBlocks, *secBlock)
+	assDataBlocks[0] = assDataBlock.Copy()
+
+	// cmac := s.CFB(assDataBlocks, *secBlock)[0]
+	// result =
 	return Package{}
 }

@@ -77,3 +77,19 @@ func ToString(arr []*TelegraphChar) string {
 
 	return bytes.String()
 }
+
+func ToPointers(b []TelegraphChar) []*TelegraphChar {
+	result := make([]*TelegraphChar, len(b))
+	for i, v := range b {
+		result[i] = &v
+	}
+	return result
+}
+
+func FromPointers(b []*TelegraphChar) []TelegraphChar {
+	result := make([]TelegraphChar, len(b))
+	for i, v := range b {
+		result[i] = *v
+	}
+	return result
+}

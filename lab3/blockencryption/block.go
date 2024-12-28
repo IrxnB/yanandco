@@ -228,3 +228,29 @@ func (b Block) Copy() Block {
 	}
 	return Block{Data: result}
 }
+
+func ToPointers(b []Block) []*Block {
+	result := make([]*Block, len(b))
+	for i, v := range b {
+		result[i] = &v
+	}
+	return result
+}
+
+func FromPointers(b []*Block) []Block {
+	result := make([]Block, len(b))
+	for i, v := range b {
+		result[i] = *v
+	}
+	return result
+}
+
+func ToTelegraphChars(b []*Block) []*crypto.TelegraphChar {
+	result := make([]*crypto.TelegraphChar, len(b)*16)
+	for i, v := range b {
+		for j, val := range v.Data {
+			result[i*16+j] = val
+		}
+	}
+	return result
+}

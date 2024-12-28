@@ -10,22 +10,22 @@ import (
 type Block = blockencryption.Block
 
 type Package struct {
-	packageType [2]TelegraphChar
-	senderMac   [8]TelegraphChar
-	recieverMac [8]TelegraphChar
-	sessionId   [9]TelegraphChar
-	length      [5]TelegraphChar //можно в int переделать
+	packageType [2]*TelegraphChar
+	senderMac   [8]*TelegraphChar
+	recieverMac [8]*TelegraphChar
+	sessionId   [9]*TelegraphChar
+	length      [5]*TelegraphChar
 	iv          *Block
-	data        []TelegraphChar
+	data        []*TelegraphChar
 	mac         *Block
 }
 
-func NewPackage(packageType [2]TelegraphChar,
+func NewPackage(packageType [2]*TelegraphChar,
 	senderMac,
-	recieverMac [8]TelegraphChar,
-	sessionId [9]TelegraphChar,
+	recieverMac [8]*TelegraphChar,
+	sessionId [9]*TelegraphChar,
 	iv *Block,
-	data []TelegraphChar,
+	data []*TelegraphChar,
 	mac *Block) *Package {
 	result := &Package{
 		packageType: packageType,
@@ -37,19 +37,19 @@ func NewPackage(packageType [2]TelegraphChar,
 		mac:         mac,
 	}
 	length := result.packageLength()
-	result.length = [5]crypto.TelegraphChar(make([]crypto.TelegraphChar, 5))
+	result.length = [5]*crypto.TelegraphChar(make([]*crypto.TelegraphChar, 5))
 	for i := 0; i < 5; i++ {
 		cur := 0
 		for j := 0; j < 5; j++ {
 			cur = bitoperations.SetNBit(cur, j, bitoperations.GetNbit(length, i*5+j))
 		}
-		result.length[i] = crypto.TelegraphChar{Char: byte(cur)}
+		result.length[i] = &crypto.TelegraphChar{Char: byte(cur)}
 	}
 
 	return result
 }
 
-func (p Package) SetData(data []TelegraphChar) {
+func (p Package) SetData(data []*TelegraphChar) {
 	p.data = data
 }
 
@@ -60,25 +60,25 @@ func (p Package) toBin() *bitstream.BitStream {
 		bs.WriteTelegraphChar(*tc)
 	}
 	for _, tc := range p.data {
-		bs.WriteTelegraphChar(tc)
+		bs.WriteTelegraphChar(*tc)
 	}
 	for _, tc := range p.iv.Data {
 		bs.WriteTelegraphChar(*tc)
 	}
 	for _, tc := range p.length {
-		bs.WriteTelegraphChar(tc)
+		bs.WriteTelegraphChar(*tc)
 	}
 	for _, tc := range p.sessionId {
-		bs.WriteTelegraphChar(tc)
+		bs.WriteTelegraphChar(*tc)
 	}
 	for _, tc := range p.recieverMac {
-		bs.WriteTelegraphChar(tc)
+		bs.WriteTelegraphChar(*tc)
 	}
 	for _, tc := range p.senderMac {
-		bs.WriteTelegraphChar(tc)
+		bs.WriteTelegraphChar(*tc)
 	}
 	for _, tc := range p.packageType {
-		bs.WriteTelegraphChar(tc)
+		bs.WriteTelegraphChar(*tc)
 	}
 
 	return bs
@@ -118,7 +118,7 @@ func FromBin(bs bitstream.BitStream) *Package {
 		dataLen |= int(val.GetByte()) << (pos * 5)
 	}
 	bodyBlocks := dataLen/5 - 64
-	data := make([]crypto.TelegraphChar, bodyBlocks)
+	data := make([]*crypto.TelegraphChar, bodyBlocks)
 	for i := bodyBlocks - 1; i >= 0; i-- {
 		data[i].Char = byte(bs.ReadBits(5))
 	}
@@ -244,6 +244,6 @@ func createPadding(remainder int, initialBLocks int) (*bitstream.BitStream, int)
 	return res, blockInc
 }
 
-func (p Package) GetPackageType() []TelegraphChar {
+func (p Package) GetPackageType() []*TelegraphChar {
 	return p.packageType[:]
 }
